@@ -33,7 +33,7 @@ const Page: React.FC = () => {
     return null;
   }
 
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://spa-ai-dasbhoard.vercel.app';
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://main.d2z0tkc25c5d9y.amplifyapp.com';
   const afterSignInUrl = process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL || '/';
   const afterSignUpUrl = process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL || '/select-plan';
   
