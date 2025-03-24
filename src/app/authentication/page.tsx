@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import { useAuth, useSignIn } from "@clerk/nextjs";
+import { SignUp } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import MagoLogo from "../../../public/images/Magofinal2.png";
 
@@ -10,6 +11,7 @@ const Page: React.FC = () => {
   const { userId, isLoaded } = useAuth();
   const { signIn } = useSignIn();
   const router = useRouter();
+  const [showSignUp, setShowSignUp] = useState(false);
 
   useEffect(() => {
     console.log("Auth State:", { userId, isLoaded });
@@ -33,6 +35,31 @@ const Page: React.FC = () => {
     return null;
   }
 
+  if (showSignUp) {
+    console.log("Showing SignUp component");
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-bgCoal">
+        <SignUp
+          appearance={{
+            elements: {
+              rootBox: "mx-auto",
+              card: "bg-[#121212] shadow-lg rounded-lg",
+              headerTitle: "text-2xl font-bold text-white",
+              headerSubtitle: "text-gray-400",
+              socialButtonsBlockButton: "border border-gray-700 hover:bg-gray-800",
+              formButtonPrimary: "bg-prinFuchsia hover:bg-prinFuchsia/80",
+              footerActionLink: "text-prinFuchsia hover:text-prinFuchsia/80",
+            },
+          }}
+          routing="path"
+          path="/register"
+          signInUrl="/login"
+          afterSignUpUrl="/select-plan"
+        />
+      </div>
+    );
+  }
+
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://main.d2z0tkc25c5d9y.amplifyapp.com';
   const afterSignInUrl = process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL || '/';
   const afterSignUpUrl = process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL || '/select-plan';
@@ -44,40 +71,16 @@ const Page: React.FC = () => {
     try {
       console.log("Starting sign in process...");
       const clerkSignInUrl = `https://welcome-goshawk-83.accounts.dev/sign-in?redirect_url=${encodeURIComponent(signInRedirectUrl)}`;
-      
-      // Primero, redirigir a Clerk para autenticación
-      await new Promise((resolve) => {
-        window.location.href = clerkSignInUrl;
-        // Esperamos un momento para asegurarnos de que la redirección comience
-        setTimeout(resolve, 100);
-      });
-
-      // El código después de esto solo se ejecutará cuando el usuario vuelva autenticado
-      console.log("Authentication successful, redirecting to dashboard...");
-      router.push(signInRedirectUrl);
+      window.location.href = clerkSignInUrl;
     } catch (error) {
       console.error("Error during sign in:", error);
     }
   };
 
-  const handleSignUp = async () => {
-    try {
-      console.log("Starting sign up process...");
-      const clerkSignUpUrl = `https://welcome-goshawk-83.accounts.dev/sign-up?redirect_url=${encodeURIComponent(signUpRedirectUrl)}`;
-      
-      await new Promise((resolve) => {
-        window.location.href = clerkSignUpUrl;
-        setTimeout(resolve, 100);
-      });
-
-      console.log("Registration successful, redirecting to select plan...");
-      router.push(signUpRedirectUrl);
-    } catch (error) {
-      console.error("Error during sign up:", error);
-    }
+  const handleSignUp = () => {
+    console.log("handleSignUp clicked, setting showSignUp to true");
+    setShowSignUp(true);
   };
-
-  console.log('URLs:', { signInRedirectUrl, signUpRedirectUrl });
 
   return (
     <main className="min-h-screen w-screen py-4 large:py-40 flex flex-col items-center bg-bgCoal">
@@ -110,5 +113,3 @@ const Page: React.FC = () => {
     </main>
   );
 };
-
-export default Page;
