@@ -1,0 +1,36 @@
+@import url("https://fonts.googleapis.com/css2?family=Maven+Pro:wght@400..900&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Mulish:wght@200..1000&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* * {
+  scrollbar-width: none;
+} */
+
+/* ---- MODAL APP SCROLL ---- */
+#scroll-snap {
+  overflow-y: auto;
+  scroll-snap-type: y mandatory;
+}
+
+.snaps {
+  scroll-snap-align: start;
+}
+
+body {
+  background-color: #000000;
+}
+
+.scroll-container {
+  white-space: nowrap; 
+  width: 100%;
+  scrollbar-color: #3626A7 #000000;
+}
+
+.scroll-bar-modal {
+  white-space: nowrap; 
+  width: 100%;
+  scrollbar-color: #3626A7 #000000;
+}

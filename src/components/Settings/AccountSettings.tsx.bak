@@ -1,0 +1,80 @@
+'use client';
+
+import React, { useState } from 'react';
+import { useAuth } from '@/context/AuthContext';
+import { useRouter } from 'next/navigation';
+
+export const AccountSettings = () => {
+  const { userId, token, logout } = useAuth();
+  const router = useRouter();
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  const handleDeleteAccount = async () => {
+    if (!userId || !token) return;
+    
+    try {
+      setIsDeleting(true);
+      const response = await fetch(`/api/users/${userId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al eliminar la cuenta');
+      }
+
+      logout();
+      router.push('/');
+    } catch (error) {
+      console.error('Error:', error);
+      alert('No se pudo eliminar la cuenta. Por favor, intente más tarde.');
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteConfirm(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+        <h2 className="text-xl font-semibold text-gray-800 mb-4">Eliminar Cuenta</h2>
+        <p className="text-gray-600 mb-4">
+          Esta acción es permanente y no se puede deshacer. Se eliminarán todos tus datos y configuraciones.
+        </p>
+        {!showDeleteConfirm ? (
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md transition-colors"
+          >
+            Eliminar mi cuenta
+          </button>
+        ) : (
+          <div className="space-y-4">
+            <p className="text-red-600 font-medium">
+              ¿Estás seguro que deseas eliminar tu cuenta permanentemente?
+            </p>
+            <div className="space-x-4">
+              <button
+                onClick={handleDeleteAccount}
+                disabled={isDeleting}
+                className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md transition-colors disabled:opacity-50"
+              >
+                {isDeleting ? 'Eliminando...' : 'Sí, eliminar mi cuenta'}
+              </button>
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={isDeleting}
+                className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-md transition-colors"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}; 
