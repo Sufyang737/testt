@@ -7,7 +7,7 @@ import { SignUp } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import MagoLogo from "../../../public/images/Magofinal2.png";
 
-const Page: React.FC = () => {
+export default function AuthenticationPage() {
   const { userId, isLoaded } = useAuth();
   const { signIn } = useSignIn();
   const router = useRouter();
@@ -54,7 +54,7 @@ const Page: React.FC = () => {
           routing="path"
           path="/register"
           signInUrl="/login"
-          afterSignUpUrl="/select-plan"
+          forceRedirectUrl="/select-plan"
         />
       </div>
     );
@@ -112,4 +112,4 @@ const Page: React.FC = () => {
       </div>
     </main>
   );
-};
+}
