@@ -551,6 +551,18 @@ NEXT_PUBLIC_POCKETBASE_URL=your_public_pocketbase_url
 }
 ```
 
+#### Colección: chat_clasification
+```json
+{
+  "id": "string",
+  "conversation_id": "string",
+  "client_id": "string",
+  "clasification": "enum(low, medium, high)",
+  "created": "date",
+  "updated": "date"
+}
+```
+
 ### Flujo de Trabajo
 
 1. **Inicio de Conversación**
@@ -571,6 +583,80 @@ NEXT_PUBLIC_POCKETBASE_URL=your_public_pocketbase_url
    - Formulario modal para edición
    - Validación de campos requeridos
    - Indicador visual de información faltante
+
+4. **Clasificación de Chats**
+   - Asignación de prioridad a las conversaciones
+   - Niveles: bajo (low), medio (medium), alto (high)
+   - Actualización en tiempo real
+   - Filtrado por nivel de prioridad
+
+### Endpoints de la API
+
+#### GET `/api/chat/bot-usage`
+Verifica si una conversación tiene el bot activado.
+
+Query params:
+- `chatId`: ID del chat de WhatsApp
+- `clientId`: ID de sesión del cliente
+
+Respuesta:
+```json
+{
+  "success": true,
+  "record": {
+    "useBot": true,
+    "category": "general"
+  }
+}
+```
+
+#### POST `/api/chat/bot-usage`
+Actualiza el estado del bot para una conversación.
+
+Body:
+```json
+{
+  "chatId": "5492966356455@c.us",
+  "clientId": "mati",
+  "useBot": true,
+  "category": "general"
+}
+```
+
+#### PATCH `/api/chat/bot-usage`
+Alterna el estado del bot (activo/inactivo).
+
+Query params:
+- `chatId`: ID del chat de WhatsApp
+- `clientId`: ID de sesión del cliente
+
+#### POST `/api/chat/clasification`
+Asigna o actualiza la clasificación de prioridad de una conversación.
+
+Body:
+```json
+{
+  "chatId": "5492966356455@c.us",
+  "sessionId": "mati",
+  "clasification": "high"
+}
+```
+
+Respuesta:
+```json
+{
+  "success": true,
+  "record": {
+    "id": "2eo387k9debnvj8",
+    "chatId": "5492966356455@c.us",
+    "clientId": "kceb5s77523h1rb",
+    "conversationId": "3xz34qfh6w6knr3",
+    "clasification": "high",
+    "created": "2025-03-25 22:02:21.286Z",
+    "updated": "2025-03-25 22:02:21.286Z"
+  }
+}
+```
 
 ### Integración con Templates
 
@@ -595,6 +681,12 @@ NEXT_PUBLIC_POCKETBASE_URL=your_public_pocketbase_url
    - Priorizar según urgencia
    - Mantener registro de interacciones
    - Usar templates apropiadamente
+
+4. **Clasificación de Chats**
+   - Usar "high" para conversaciones urgentes
+   - Usar "medium" para conversaciones en progreso
+   - Usar "low" para conversaciones informativas
+   - Actualizar la clasificación según evolucione la conversación
 
 ### Configuración Técnica
 

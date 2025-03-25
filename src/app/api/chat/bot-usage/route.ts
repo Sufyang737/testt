@@ -18,16 +18,31 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const chatId = searchParams.get('chatId')
-    const clientId = searchParams.get('clientId')
+    const sessionId = searchParams.get('clientId') // Este es el session_id del cliente, no el client_id
 
-    if (!chatId || !clientId) {
+    if (!chatId || !sessionId) {
       return NextResponse.json(
         { error: 'Chat ID and Client ID are required' },
         { status: 400 }
       )
     }
 
-    // Get conversation record
+    // Primero, buscar el cliente por session_id
+    const clients = await pb.collection('clients').getList(1, 1, {
+      filter: `session_id = "${sessionId}"`,
+      requestKey: null
+    })
+
+    if (clients.items.length === 0) {
+      return NextResponse.json(
+        { error: 'Client not found' },
+        { status: 404 }
+      )
+    }
+
+    const clientId = clients.items[0].id
+
+    // Ahora, buscar la conversación usando el client_id correcto
     const conversations = await pb.collection('conversation').getList(1, 1, {
       filter: `chat_id = "${chatId}" && client_id = "${clientId}"`,
       requestKey: null // Avoid auto-cancellation
@@ -88,16 +103,32 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { chatId, useBot, category, clientId } = body
+    const { chatId, useBot, category } = body
+    const sessionId = body.clientId // Este es el session_id del cliente, no el client_id
 
-    if (!chatId || !clientId) {
+    if (!chatId || !sessionId) {
       return NextResponse.json(
         { error: 'Chat ID and Client ID are required' },
         { status: 400 }
       )
     }
 
-    // Get conversation record
+    // Primero, buscar el cliente por session_id
+    const clients = await pb.collection('clients').getList(1, 1, {
+      filter: `session_id = "${sessionId}"`,
+      requestKey: null
+    })
+
+    if (clients.items.length === 0) {
+      return NextResponse.json(
+        { error: 'Client not found' },
+        { status: 404 }
+      )
+    }
+
+    const clientId = clients.items[0].id
+
+    // Ahora, buscar la conversación usando el client_id correcto
     const conversations = await pb.collection('conversation').getList(1, 1, {
       filter: `chat_id = "${chatId}" && client_id = "${clientId}"`,
       requestKey: null
@@ -108,7 +139,7 @@ export async function POST(request: Request) {
       // Create new conversation if it doesn't exist
       conversation = await pb.collection('conversation').create({
         chat_id: chatId,
-        client_id: clientId,
+        client_id: clientId, // Usar el ID real del cliente, no el session_id
         use_bot: useBot ?? false,
         category: category || 'general',
         finished_chat: false
@@ -167,16 +198,31 @@ export async function PATCH(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const chatId = searchParams.get('chatId')
-    const clientId = searchParams.get('clientId')
+    const sessionId = searchParams.get('clientId') // Este es el session_id del cliente, no el client_id
 
-    if (!chatId || !clientId) {
+    if (!chatId || !sessionId) {
       return NextResponse.json(
         { error: 'Chat ID and Client ID are required' },
         { status: 400 }
       )
     }
 
-    // Get conversation record
+    // Primero, buscar el cliente por session_id
+    const clients = await pb.collection('clients').getList(1, 1, {
+      filter: `session_id = "${sessionId}"`,
+      requestKey: null
+    })
+
+    if (clients.items.length === 0) {
+      return NextResponse.json(
+        { error: 'Client not found' },
+        { status: 404 }
+      )
+    }
+
+    const clientId = clients.items[0].id
+
+    // Ahora, buscar la conversación usando el client_id correcto
     const conversations = await pb.collection('conversation').getList(1, 1, {
       filter: `chat_id = "${chatId}" && client_id = "${clientId}"`,
       requestKey: null
