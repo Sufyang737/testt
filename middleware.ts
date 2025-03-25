@@ -1,33 +1,30 @@
-import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import type { NextRequest } from "next/server";
 
-const isPublicRoute = createRouteMatcher([
+// Rutas públicas (no requieren autenticación)
+const publicRoutes = createRouteMatcher([
   '/',
   '/sign-in(.*)',
   '/sign-up(.*)',
+  '/authentication(.*)',
   '/api/ai(.*)',
   '/api/apikeys/store(.*)',
-  '/api/apikeys/validate(.*)'
-])
+  '/api/apikeys/validate(.*)',
+  '/api/webhook/clerk(.*)'
+]);
 
-const isAdminRoute = createRouteMatcher(['/admin(.*)'])
-
-export default clerkMiddleware(async (auth, req) => {
-  // Protect admin routes
-  if (isAdminRoute(req)) {
-    await auth.protect()
+export default clerkMiddleware((auth, req: NextRequest) => {
+  // Protección de rutas - solo usuarios autenticados pueden acceder a rutas no públicas
+  if (!publicRoutes(req)) {
+    auth.protect();
   }
-  
-  // Protect all routes except public ones
-  if (!isPublicRoute(req)) {
-    await auth.protect()
-  }
-})
+});
 
 export const config = {
   matcher: [
-    // Skip Next.js internals and all static files
-    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
-    // Always run for API routes
-    '/(api|trpc)(.*)',
+    // Excluir archivos estáticos y rutas internas de Next.js
+    "/((?!.+\\.[\\w]+$|_next).*)",
+    // Incluir todas las rutas API
+    "/(api|trpc)(.*)",
   ],
-} 
+}; 
