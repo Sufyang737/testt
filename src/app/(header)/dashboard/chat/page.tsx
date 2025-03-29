@@ -8,6 +8,8 @@ import {
   DocumentTextIcon,
   BoltIcon,
   XCircleIcon,
+  ChatBubbleLeftRightIcon,
+  PlusIcon,
 } from '@heroicons/react/24/outline';
 import Image from 'next/image';
 import { useUser } from '@clerk/nextjs';
@@ -101,6 +103,12 @@ interface Template {
   tags: string;
 }
 
+// Añadir nueva interfaz para las variables de template
+interface TemplateVariables {
+  name: string;
+  [key: string]: string;
+}
+
 const WAHA_API_URL = process.env.NEXT_PUBLIC_WAHA_API_URL || '';
 const POCKETBASE_URL = process.env.NEXT_PUBLIC_POCKETBASE_URL || '';
 
@@ -127,6 +135,25 @@ export default function ChatPage() {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [profileFormData, setProfileFormData] = useState<Partial<ProfileLeadRecord>>({});
+  // Nuevas variables de estado para el modal de variables
+  const [isVariablesModalOpen, setIsVariablesModalOpen] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
+  const [templateVariables, setTemplateVariables] = useState<TemplateVariables>({
+    name: '',
+  });
+  const [processedMessage, setProcessedMessage] = useState('');
+  // Referencia para el elemento de audio de notificación
+  const notificationSoundRef = React.useRef<HTMLAudioElement | null>(null);
+  // Estado para controlar las notificaciones
+  const [notifications, setNotifications] = useState<{[chatId: string]: number}>({});
+  // Estado para controlar si el usuario tiene la ventana activa
+  const [isWindowActive, setIsWindowActive] = useState(true);
+  // Objeto para guardar las conversaciones y sus estados de bot
+  const [conversationBotStatus, setConversationBotStatus] = useState<{[chatId: string]: boolean}>({});
+  // Estado para controlar si el sonido está cargado
+  const [soundLoaded, setSoundLoaded] = useState(false);
+  // Cliente id para facilitar consultas
+  const [clientId, setClientId] = useState<string | null>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -225,22 +252,189 @@ export default function ChatPage() {
     fetchMessages();
   }, [selectedChat, sessionId]);
 
-  // Función para procesar mensajes entrantes
-  const handleIncomingMessage = useCallback((wahaMessage: WAHAWebhookMessage) => {
-    if (!selectedChat) return;
+  // Efecto para crear el elemento de audio
+  useEffect(() => {
+    // Crear el elemento de audio y configurar eventos
+    const audio = new Audio('/sounds/notification.mp3');
+    audio.addEventListener('canplaythrough', () => {
+      console.log('Sonido de notificación cargado correctamente');
+      setSoundLoaded(true);
+    });
+    audio.addEventListener('error', (e) => {
+      console.error('Error al cargar el sonido de notificación:', e);
+    });
+    notificationSoundRef.current = audio;
     
-    // Solo procesamos mensajes del chat seleccionado
-    if (wahaMessage.payload.from !== selectedChat) return;
-
-    const newMessage: Message = {
-      id: wahaMessage.payload.id,
-      text: wahaMessage.payload.body,
-      sender: wahaMessage.payload.fromMe ? 'user' : 'contact',
-      timestamp: new Date(wahaMessage.payload.timestamp * 1000),
+    // Detectar cuando la ventana está activa/inactiva
+    const handleVisibilityChange = () => {
+      setIsWindowActive(!document.hidden);
     };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // Solicitar permisos para notificaciones
+    if ('Notification' in window && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+      Notification.requestPermission().then(permission => {
+        console.log('Permiso de notificación:', permission);
+      });
+    }
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (notificationSoundRef.current) {
+        notificationSoundRef.current.pause();
+        notificationSoundRef.current = null;
+      }
+    };
+  }, []);
 
-    setMessages(prev => [...prev, newMessage]);
-  }, [selectedChat]);
+  // Efecto para cargar los estados del bot para todas las conversaciones
+  useEffect(() => {
+    if (!user) return;
+    
+    const loadAllConversationBotStatus = async () => {
+      try {
+        // Obtener el ID del cliente
+        const clientRecord = await pb.collection('clients').getFirstListItem(
+          `clerk_id = "${user.id}"`
+        );
+        
+        if (!clientRecord) return;
+        
+        setClientId(clientRecord.id);
+        
+        // Cargar todas las conversaciones para este cliente
+        const conversations = await pb.collection('conversation').getFullList({
+          filter: `client_id = "${clientRecord.id}"`,
+        });
+        
+        // Crear un objeto con los estados del bot para cada conversación
+        const botStatus: {[chatId: string]: boolean} = {};
+        conversations.forEach((conv: any) => {
+          botStatus[conv.chat_id] = conv.use_bot;
+        });
+        
+        console.log('Estados del bot cargados:', botStatus);
+        setConversationBotStatus(botStatus);
+      } catch (error) {
+        console.error('Error al cargar los estados del bot:', error);
+      }
+    };
+    
+    loadAllConversationBotStatus();
+  }, [user, pb]);
+
+  // Función para mostrar una notificación
+  const showNotification = useCallback((chat: Chat, message: string) => {
+    // Verificar si esta conversación usa bot según el estado actual
+    const usesBot = conversationBotStatus[chat.id] || false;
+    
+    console.log('Notificación para chat:', chat.id, 'Bot activo:', usesBot);
+    
+    // Solo mostrar notificación si la conversación NO usa bot
+    if (usesBot) {
+      console.log('Ignorando notificación, chat usa bot:', chat.id);
+      return;
+    }
+    
+    console.log('Mostrando notificación para chat:', chat.id);
+    console.log('Estado ventana activa:', isWindowActive);
+    console.log('Chat seleccionado:', selectedChat);
+    
+    // Reproducir sonido solo si la ventana no está activa o no es el chat seleccionado
+    if (!isWindowActive || selectedChat !== chat.id) {
+      if (notificationSoundRef.current && soundLoaded) {
+        console.log('Intentando reproducir sonido');
+        
+        // Reiniciar el audio para permitir reproducción repetida
+        notificationSoundRef.current.currentTime = 0;
+        
+        // Reproducir con manejo explícito de errores
+        notificationSoundRef.current.play()
+          .then(() => console.log('Sonido reproducido correctamente'))
+          .catch(err => console.error('Error reproduciendo sonido:', err));
+      } else {
+        console.warn('Elemento de audio no disponible o no cargado');
+      }
+      
+      // Mostrar notificación nativa si está disponible y el usuario lo ha permitido
+      if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification('Nuevo mensaje de ' + chat.name, {
+          body: message,
+          icon: '/images/logo.png'
+        });
+      }
+      
+      // Incrementar contador de notificaciones para este chat
+      setNotifications(prev => ({
+        ...prev,
+        [chat.id]: (prev[chat.id] || 0) + 1
+      }));
+    }
+  }, [isWindowActive, selectedChat, conversationBotStatus, soundLoaded]);
+
+  // Modificar la función para procesar mensajes entrantes
+  const handleIncomingMessage = useCallback((wahaMessage: WAHAWebhookMessage) => {
+    // Ignorar mensajes enviados por nosotros
+    if (wahaMessage.payload.fromMe) return;
+    
+    // Si el mensaje no es del chat seleccionado o la ventana no está activa, mostrar notificación
+    const chatData = chats.find(c => c.id === wahaMessage.payload.from);
+    
+    if (chatData) {
+      console.log('Mensaje entrante de:', chatData.name, 'ID:', wahaMessage.payload.from);
+      
+      // Verificar si necesitamos buscar el estado del bot para esta conversación
+      const checkAndUpdateBotStatus = async () => {
+        // Si no conocemos el estado del bot para esta conversación, intentar obtenerlo
+        if (clientId && conversationBotStatus[wahaMessage.payload.from] === undefined) {
+          try {
+            console.log('Consultando estado del bot para conversación:', wahaMessage.payload.from);
+            
+            // Buscar la conversación por chat_id
+            const conversation = await pb.collection('conversation').getFirstListItem(
+              `chat_id = "${wahaMessage.payload.from}" && client_id = "${clientId}"`
+            );
+            
+            if (conversation) {
+              console.log('Conversación encontrada, estado bot:', conversation.use_bot);
+              
+              // Actualizar el estado del bot para esta conversación
+              setConversationBotStatus(prev => ({
+                ...prev,
+                [wahaMessage.payload.from]: conversation.use_bot
+              }));
+              
+              return conversation.use_bot;
+            }
+          } catch (error) {
+            console.log('Conversación no encontrada en la base de datos');
+            return false;
+          }
+        }
+        
+        return conversationBotStatus[wahaMessage.payload.from] || false;
+      };
+      
+      // Verificar el estado del bot y mostrar notificación si es necesario
+      checkAndUpdateBotStatus().then(() => {
+        console.log('Mostrando notificación después de verificar estado del bot');
+        showNotification(chatData, wahaMessage.payload.body);
+      });
+    }
+    
+    // Solo procesamos mensajes del chat seleccionado para mostrarlos en la interfaz
+    if (selectedChat && wahaMessage.payload.from === selectedChat) {
+      const newMessage: Message = {
+        id: wahaMessage.payload.id,
+        text: wahaMessage.payload.body,
+        sender: wahaMessage.payload.fromMe ? 'user' : 'contact',
+        timestamp: new Date(wahaMessage.payload.timestamp * 1000),
+      };
+
+      setMessages(prev => [...prev, newMessage]);
+    }
+  }, [selectedChat, chats, showNotification, conversationBotStatus, clientId, pb]);
 
   // Efecto para establecer la conexión WebSocket
   useEffect(() => {
@@ -451,6 +645,12 @@ export default function ChatPage() {
       if (conversationRecord) {
         const conversation = conversationRecord as unknown as ConversationRecord;
         
+        // Guardar el estado del bot para esta conversación
+        setConversationBotStatus(prev => ({
+          ...prev,
+          [chatId]: conversation.use_bot
+        }));
+        
         // Buscar el perfil del lead
         const profileRecord = await pb.collection('profile_lead')
           .getFirstListItem(`conversation = "${conversation.id}"`)
@@ -477,9 +677,16 @@ export default function ChatPage() {
     }
   };
 
-  // Modificar handleChatSelection para incluir la carga de detalles
+  // Modificar handleChatSelection para también verificar el estado del bot
   const handleChatSelection = async (chatId: string) => {
     setSelectedChat(chatId);
+    
+    // Limpiar notificaciones para este chat
+    setNotifications(prev => ({
+      ...prev,
+      [chatId]: 0
+    }));
+    
     const selectedChatData = chats.find(c => c.id === chatId);
     
     if (selectedChatData && user) {
@@ -493,20 +700,40 @@ export default function ChatPage() {
           return;
         }
 
+        setClientId(clientRecord.id);
+
         // Verificar si ya existe una conversación para este chat
-        const existingConversation = await pb.collection('conversation')
-          .getFirstListItem(
+        try {
+          // Buscar la conversación existente
+          const existingConversation = await pb.collection('conversation').getFirstListItem(
             `chat_id = "${chatId}" && client_id = "${clientRecord.id}"`
-          )
-          .catch(() => null);
-
-        if (!existingConversation) {
-          console.log('No existe conversación, creando registros...');
+          );
+          
+          if (existingConversation) {
+            console.log('Conversación existente encontrada, estado bot:', existingConversation.use_bot);
+            
+            // Actualizar el estado del bot para esta conversación
+            setConversationBotStatus(prev => ({
+              ...prev,
+              [chatId]: existingConversation.use_bot
+            }));
+            
+            // Cargar los detalles
+            await loadChatDetails(chatId, clientRecord.id);
+          }
+        } catch (error) {
+          console.log('Conversación no encontrada, creando registros...');
           await createConversationRecords(selectedChatData);
+          
+          // Por defecto las nuevas conversaciones tienen el bot activado
+          setConversationBotStatus(prev => ({
+            ...prev,
+            [chatId]: true
+          }));
+          
+          // Cargar los detalles después de crear
+          await loadChatDetails(chatId, clientRecord.id);
         }
-
-        // Cargar los detalles después de crear o verificar la conversación
-        await loadChatDetails(chatId, clientRecord.id);
       } catch (error) {
         console.error('Error en handleChatSelection:', error);
         if (error instanceof Error) {
@@ -597,26 +824,103 @@ export default function ChatPage() {
   }, [user]);
 
   const handleTemplateSelect = (template: Template) => {
-    setNewMessage(template.template);
+    setSelectedTemplate(template);
+    
+    // Extraer todas las variables del template (patrones como {{variable}})
+    const variablePattern = /\{\{([^}]+)\}\}/g;
+    const extractedVars: string[] = [];
+    let match;
+    
+    // Usar exec en lugar de matchAll para mayor compatibilidad
+    while ((match = variablePattern.exec(template.template)) !== null) {
+      if (match[1] && !extractedVars.includes(match[1])) {
+        extractedVars.push(match[1]);
+      }
+    }
+    
+    // Crear un objeto con las variables encontradas
+    const variables: TemplateVariables = { name: '' };
+    extractedVars.forEach(varName => {
+      variables[varName] = '';
+    });
+    
+    // Prellenar con datos del contacto si están disponibles
+    if (selectedChat) {
+      const chatData = chats.find(c => c.id === selectedChat);
+      if (chatData) {
+        variables.name = chatData.name;
+      }
+      
+      // Si tenemos información del perfil, usar esos datos también
+      if (selectedChatDetails?.profile) {
+        if (variables.hasOwnProperty('name')) {
+          variables.name = selectedChatDetails.profile.name_client || chatData?.name || '';
+        }
+        if (variables.hasOwnProperty('company')) {
+          variables.company = selectedChatDetails.profile.name_company || '';
+        }
+      }
+    }
+    
+    setTemplateVariables(variables);
+    
+    // Procesar el mensaje con las variables
+    let processed = template.template;
+    Object.entries(variables).forEach(([key, value]) => {
+      processed = processed.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value);
+    });
+    
+    setProcessedMessage(processed);
+    
+    // Si hay variables sin valor, mostrar el modal para completarlas
+    const hasEmptyVars = extractedVars.some(varName => !variables[varName]);
+    if (hasEmptyVars) {
+      setIsVariablesModalOpen(true);
+    } else {
+      // Si todas las variables tienen valor, insertar directamente
+      setNewMessage(processed);
+      setIsTemplateModalOpen(false);
+    }
+  };
+  
+  const handleApplyTemplate = () => {
+    // Aplicar las variables al template
+    let processed = selectedTemplate?.template || '';
+    Object.entries(templateVariables).forEach(([key, value]) => {
+      processed = processed.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value);
+    });
+    
+    setNewMessage(processed);
+    setIsVariablesModalOpen(false);
     setIsTemplateModalOpen(false);
   };
 
   const toggleBotStatus = async () => {
-    if (!selectedChatDetails?.conversation) return;
+    if (!selectedChatDetails?.conversation || !selectedChat) return;
     
     try {
-      const updatedConversation = await pb.collection('conversation').update(
+      const newBotStatus = !selectedChatDetails.conversation.use_bot;
+      
+      await pb.collection('conversation').update(
         selectedChatDetails.conversation.id,
-        { use_bot: !selectedChatDetails.conversation.use_bot }
+        { use_bot: newBotStatus }
       );
+
+      // Actualizar el estado del bot para esta conversación
+      setConversationBotStatus(prev => ({
+        ...prev,
+        [selectedChat]: newBotStatus
+      }));
 
       setSelectedChatDetails(prev => prev ? {
         ...prev,
         conversation: {
           ...prev.conversation!,
-          use_bot: !prev.conversation!.use_bot
+          use_bot: newBotStatus
         }
       } : null);
+
+      console.log('Estado del bot actualizado:', selectedChat, newBotStatus);
 
     } catch (error) {
       console.error('Error al actualizar el estado del bot:', error);
@@ -626,45 +930,60 @@ export default function ChatPage() {
 
   if (isLoading) {
     return (
-      <div className="h-[calc(100vh-70px)] w-full bg-bgCoal flex items-center justify-center">
-        <div className="text-white">Cargando chats...</div>
+      <div className="h-[calc(100vh-70px)] w-full flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-gray-700">Cargando tus conversaciones...</p>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="h-[calc(100vh-70px)] w-full bg-bgCoal flex items-center justify-center">
-        <div className="text-white text-center">
-          <p className="text-red-500 mb-2">{error}</p>
-          <p className="text-gray-400">Asegúrate de tener una sesión de WhatsApp activa</p>
+      <div className="h-[calc(100vh-70px)] w-full flex items-center justify-center">
+        <div className="text-center max-w-md p-8 bg-white rounded-xl shadow-lg">
+          <div className="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
+            <XCircleIcon className="w-10 h-10 text-red-500" />
+          </div>
+          <p className="text-red-500 font-medium text-lg mb-2">{error}</p>
+          <p className="text-gray-600 mb-6">Asegúrate de tener una sesión de WhatsApp activa</p>
+          <button 
+            className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors"
+            onClick={() => window.location.reload()}
+          >
+            Reintentar
+          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="h-[calc(100vh-70px)] w-full bg-bgCoal">
+    <div className="h-[calc(100vh-70px)] w-full bg-gray-50 overflow-hidden">
+      {/* Elemento de audio para notificaciones */}
+      {/* Lo creamos dinámicamente en useEffect */}
+      
       <div className="h-full w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="h-full flex bg-gray-800 rounded-lg shadow-xl overflow-hidden">
+        <div className="h-full flex bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
           {/* Lista de chats */}
-          <div className="w-1/3 border-r border-gray-700 flex flex-col">
+          <div className="w-1/3 border-r border-gray-200 flex flex-col overflow-hidden">
             {/* Header de búsqueda */}
-            <div className="p-4 border-b border-gray-700">
+            <div className="p-4 border-b border-gray-200 bg-white flex-shrink-0">
               <div className="relative">
                 <input
                   type="text"
                   placeholder="Buscar o empezar un nuevo chat"
-                  className="w-full bg-gray-700 text-white rounded-lg pl-10 pr-4 py-2 focus:outline-none focus:ring-2 focus:ring-prinFuchsia"
+                  className="w-full bg-gray-100 text-gray-800 rounded-lg pl-10 pr-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary focus:bg-white transition-all"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
-                <MagnifyingGlassIcon className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                <MagnifyingGlassIcon className="w-5 h-5 text-gray-500 absolute left-3 top-1/2 transform -translate-y-1/2" />
               </div>
             </div>
 
             {/* Lista de chats */}
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto bg-white">
               {chats
                 .filter(chat => 
                   chat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -673,12 +992,12 @@ export default function ChatPage() {
                 .map((chat) => (
                   <div
                     key={chat.id}
-                    className={`flex items-center p-4 hover:bg-gray-700 cursor-pointer transition-colors ${
-                      selectedChat === chat.id ? 'bg-gray-700' : ''
+                    className={`flex items-center p-4 hover:bg-gray-50 cursor-pointer transition-colors ${
+                      selectedChat === chat.id ? 'bg-gray-100' : ''
                     }`}
                     onClick={() => handleChatSelection(chat.id)}
                   >
-                    <div className="relative w-12 h-12 rounded-full overflow-hidden bg-gray-600 flex-shrink-0">
+                    <div className="relative w-12 h-12 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
                       <Image
                         src={chat.avatar}
                         alt={chat.name}
@@ -688,31 +1007,49 @@ export default function ChatPage() {
                     </div>
                     <div className="ml-4 flex-1 min-w-0">
                       <div className="flex justify-between items-start">
-                        <h3 className="text-white font-medium truncate">{chat.name}</h3>
-                        <span className="text-xs text-gray-400 whitespace-nowrap ml-2">
+                        <h3 className="text-gray-900 font-medium truncate">{chat.name}</h3>
+                        <span className="text-xs text-gray-500 whitespace-nowrap ml-2">
                           {chat.time}
                         </span>
                       </div>
-                      <p className="text-gray-400 text-sm truncate">{chat.lastMessage}</p>
+                      <p className="text-gray-600 text-sm truncate">{chat.lastMessage}</p>
                     </div>
-                    {chat.unread > 0 && (
-                      <span className="ml-2 bg-prinFuchsia text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                        {chat.unread}
+                    {(chat.unread > 0 || notifications[chat.id]) && (
+                      <span className="ml-2 bg-primary text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                        {notifications[chat.id] || chat.unread}
                       </span>
                     )}
                   </div>
                 ))}
+                
+                {chats.filter(chat => 
+                  chat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                  chat.lastMessage.toLowerCase().includes(searchQuery.toLowerCase())
+                ).length === 0 && (
+                  <div className="flex flex-col items-center justify-center h-40 p-4 text-center">
+                    <MagnifyingGlassIcon className="w-8 h-8 text-gray-400 mb-2" />
+                    <p className="text-gray-500">No se encontraron conversaciones</p>
+                    {searchQuery && (
+                      <button 
+                        onClick={() => setSearchQuery('')}
+                        className="mt-2 text-primary hover:text-primary-hover text-sm"
+                      >
+                        Limpiar búsqueda
+                      </button>
+                    )}
+                  </div>
+                )}
             </div>
           </div>
 
           {/* Área de chat */}
           {selectedChat ? (
-            <div className="flex-1 flex flex-col">
+            <div className="flex-1 flex flex-col overflow-hidden">
               {/* Header del chat activo */}
-              <div className="px-6 py-4 border-b border-gray-700">
+              <div className="px-6 py-4 border-b border-gray-200 bg-white flex-shrink-0">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center">
-                    <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-600">
+                    <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200">
                       <Image
                         src={chats.find(c => c.id === selectedChat)?.avatar || ''}
                         alt="Contact"
@@ -722,7 +1059,7 @@ export default function ChatPage() {
                       />
                     </div>
                     <div className="ml-4">
-                      <h2 className="text-white font-medium">
+                      <h2 className="text-gray-900 font-medium">
                         {chats.find(c => c.id === selectedChat)?.name}
                       </h2>
                       <div className="flex items-center space-x-2">
@@ -730,33 +1067,25 @@ export default function ChatPage() {
                           <div className="flex items-center gap-3">
                             <button
                               onClick={toggleBotStatus}
-                              className="relative inline-flex h-8 w-14 items-center rounded-full transition-colors duration-300 focus:outline-none"
+                              className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none"
                             >
                               <span
                                 className={`
-                                  inline-block h-8 w-14 rounded-full
-                                  ${selectedChatDetails.conversation.use_bot ? 'bg-white' : 'bg-gray-700'}
+                                  inline-block h-6 w-11 rounded-full
+                                  ${selectedChatDetails.conversation.use_bot ? 'bg-primary' : 'bg-gray-300'}
                                   transition-colors duration-300
                                 `}
                               />
                               <span
                                 className={`
-                                  absolute inline-block h-6 w-6 transform rounded-full
-                                  ${selectedChatDetails.conversation.use_bot ? 'translate-x-7 bg-black' : 'translate-x-1 bg-gray-500'}
+                                  absolute inline-block h-4 w-4 transform rounded-full bg-white
+                                  ${selectedChatDetails.conversation.use_bot ? 'translate-x-6' : 'translate-x-1'}
                                   transition-transform duration-300 ease-in-out
                                 `}
                               />
-                              <span 
-                                className={`
-                                  absolute left-0 right-0 text-xs font-medium text-center
-                                  ${selectedChatDetails.conversation.use_bot ? 'text-black' : 'text-white'}
-                                `}
-                              >
-                                {selectedChatDetails.conversation.use_bot ? 'ON' : 'OFF'}
-                              </span>
                             </button>
                             <span className={`text-sm ${
-                              selectedChatDetails.conversation.use_bot ? 'text-white' : 'text-gray-500'
+                              selectedChatDetails.conversation.use_bot ? 'text-primary font-medium' : 'text-gray-500'
                             }`}>
                               Chat Bot
                             </span>
@@ -776,9 +1105,9 @@ export default function ChatPage() {
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-4">
+                  <div className="flex items-center space-x-2">
                     <button
-                      className="relative text-gray-400 hover:text-white p-2 rounded-lg hover:bg-gray-700"
+                      className="relative text-gray-600 hover:text-gray-900 p-2 rounded-lg hover:bg-gray-100 transition-colors"
                       onClick={() => setIsProfileModalOpen(true)}
                     >
                       <span className="text-sm">Perfil</span>
@@ -792,98 +1121,146 @@ export default function ChatPage() {
                         )
                       )}
                     </button>
-                    <button className="text-gray-400 hover:text-white">
-                      <EllipsisVerticalIcon className="w-6 h-6" />
+                    <button className="text-gray-600 hover:text-gray-900 p-2 rounded-lg hover:bg-gray-100 transition-colors">
+                      <EllipsisVerticalIcon className="w-5 h-5" />
                     </button>
                   </div>
                 </div>
               </div>
 
               {/* Área de mensajes */}
-              <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-gray-900">
+              <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-[#f7f9fc]">
                 {isLoadingMessages ? (
                   <div className="flex items-center justify-center h-full">
-                    <p className="text-gray-400">Cargando mensajes...</p>
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                      <p className="text-gray-500 text-sm">Cargando mensajes...</p>
+                    </div>
                   </div>
                 ) : (
                   <>
-                    {messages.map((message) => (
-                      <div
-                        key={message.id}
-                        className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-                      >
-                        <div
-                          className={`max-w-[70%] rounded-lg px-4 py-2 ${
-                            message.sender === 'user'
-                              ? 'bg-prinFuchsia text-white'
-                              : 'bg-gray-700 text-white'
-                          }`}
-                        >
-                          <p>{message.text}</p>
-                          <span className="text-xs text-gray-300 mt-1 block">
-                            {message.timestamp.toLocaleTimeString()}
-                          </span>
+                    {messages.length === 0 && (
+                      <div className="flex flex-col items-center justify-center h-full text-center">
+                        <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-3">
+                          <ChatBubbleLeftRightIcon className="w-8 h-8 text-primary" />
                         </div>
+                        <h3 className="text-gray-700 font-medium">No hay mensajes aún</h3>
+                        <p className="text-gray-500 text-sm mt-1">Envía el primer mensaje para comenzar la conversación</p>
                       </div>
-                    ))}
+                    )}
+                    
+                    {messages.map((message, index) => {
+                      const showDateHeader = index === 0 || 
+                        new Date(message.timestamp).toDateString() !== 
+                        new Date(messages[index - 1].timestamp).toDateString();
+                      
+                      return (
+                        <React.Fragment key={message.id}>
+                          {showDateHeader && (
+                            <div className="flex justify-center my-4">
+                              <span className="text-xs text-gray-500 bg-white px-3 py-1 rounded-full shadow-sm">
+                                {new Date(message.timestamp).toLocaleDateString()}
+                              </span>
+                            </div>
+                          )}
+                          <div
+                            className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+                          >
+                            <div
+                              className={`max-w-[70%] rounded-2xl px-4 py-2.5 shadow-sm ${
+                                message.sender === 'user'
+                                  ? 'bg-primary text-white rounded-tr-none'
+                                  : 'bg-white text-gray-800 rounded-tl-none'
+                              }`}
+                            >
+                              <p className="break-words">{message.text}</p>
+                              <span className={`text-xs ${message.sender === 'user' ? 'text-white/80' : 'text-gray-500'} mt-1 block text-right`}>
+                                {message.timestamp.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                              </span>
+                            </div>
+                          </div>
+                        </React.Fragment>
+                      );
+                    })}
                     <div ref={messagesEndRef} />
                   </>
                 )}
               </div>
 
               {/* Input de mensaje */}
-              <form onSubmit={handleSendMessage} className="p-4 border-t border-gray-700 bg-gray-800">
-                <div className="flex items-center space-x-4">
+              <form onSubmit={handleSendMessage} className="p-4 border-t border-gray-200 bg-white flex-shrink-0">
+                <div className="flex items-center space-x-3">
                   <button
                     type="button"
-                    className="p-2 text-gray-400 hover:text-white rounded-full hover:bg-gray-700 transition-colors"
+                    className={`p-2 text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-100 transition-colors ${
+                      selectedChatDetails?.conversation?.use_bot ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
                     disabled={selectedChatDetails?.conversation?.use_bot}
                   >
-                    <PaperClipIcon className="w-6 h-6" />
+                    <PaperClipIcon className="w-5 h-5" />
                   </button>
                   <button
                     type="button"
                     onClick={() => setIsTemplateModalOpen(true)}
-                    className="p-2 text-gray-400 hover:text-white rounded-full hover:bg-gray-700 transition-colors"
-                    disabled={selectedChatDetails?.conversation?.use_bot}
-                  >
-                    <DocumentTextIcon className="w-6 h-6" />
-                  </button>
-                  <input
-                    type="text"
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    placeholder={selectedChatDetails?.conversation?.use_bot ? "Bot activo - No puedes enviar mensajes" : "Escribe un mensaje..."}
-                    className={`flex-1 bg-gray-700 text-white rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary ${
+                    className={`p-2 text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-100 transition-colors ${
                       selectedChatDetails?.conversation?.use_bot ? 'opacity-50 cursor-not-allowed' : ''
                     }`}
                     disabled={selectedChatDetails?.conversation?.use_bot}
-                  />
+                  >
+                    <DocumentTextIcon className="w-5 h-5" />
+                  </button>
+                  <div className="flex-1 relative">
+                    <input
+                      type="text"
+                      value={newMessage}
+                      onChange={(e) => setNewMessage(e.target.value)}
+                      placeholder={selectedChatDetails?.conversation?.use_bot ? "Bot activo - No puedes enviar mensajes" : "Escribe un mensaje..."}
+                      className={`w-full bg-gray-100 text-gray-800 rounded-full px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary focus:bg-white transition-all ${
+                        selectedChatDetails?.conversation?.use_bot ? 'opacity-70 cursor-not-allowed' : ''
+                      }`}
+                      disabled={selectedChatDetails?.conversation?.use_bot}
+                    />
+                  </div>
                   <button
                     type="submit"
-                    className={`p-2 bg-primary text-white rounded-full transition-colors ${
+                    className={`p-2.5 bg-primary text-white rounded-full transition-all ${
                       selectedChatDetails?.conversation?.use_bot || !newMessage.trim() 
                         ? 'opacity-50 cursor-not-allowed' 
-                        : 'hover:bg-primary-hover'
+                        : 'hover:bg-primary-hover hover:shadow-md active:scale-95'
                     }`}
                     disabled={selectedChatDetails?.conversation?.use_bot || !newMessage.trim()}
                   >
-                    <PaperAirplaneIcon className="w-6 h-6" />
+                    <PaperAirplaneIcon className="w-5 h-5" />
                   </button>
                 </div>
                 {selectedChatDetails?.conversation?.use_bot && (
-                  <p className="text-yellow-500 text-sm mt-2 text-center">
-                    El bot está activo. Los mensajes serán respondidos automáticamente.
-                  </p>
+                  <div className="flex items-center justify-center gap-2 mt-3 bg-yellow-50 text-yellow-700 p-2 rounded-lg">
+                    <BoltIcon className="w-5 h-5" />
+                    <p className="text-sm">
+                      El bot está activo. Los mensajes serán respondidos automáticamente.
+                    </p>
+                  </div>
                 )}
               </form>
             </div>
           ) : (
             // Estado cuando no hay chat seleccionado
-            <div className="flex-1 flex items-center justify-center bg-gray-900">
-              <div className="text-center">
-                <h3 className="text-white text-xl font-medium mb-2">Bienvenido al Chat</h3>
-                <p className="text-gray-400">Selecciona un chat para comenzar</p>
+            <div className="flex-1 flex items-center justify-center bg-[#f7f9fc]">
+              <div className="text-center max-w-sm p-8">
+                <div className="w-24 h-24 mx-auto bg-primary/10 rounded-full flex items-center justify-center mb-6">
+                  <ChatBubbleLeftRightIcon className="w-12 h-12 text-primary" />
+                </div>
+                <h3 className="text-gray-800 text-xl font-medium mb-3">Centro de Conversaciones</h3>
+                <p className="text-gray-600 mb-6">Selecciona un chat para comenzar a interactuar con tus contactos o utiliza el bot para respuestas automáticas.</p>
+                <div className="flex justify-center">
+                  <a 
+                    href="/dashboard/templates" 
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors"
+                  >
+                    <DocumentTextIcon className="w-5 h-5" />
+                    <span>Administrar plantillas</span>
+                  </a>
+                </div>
               </div>
             </div>
           )}
@@ -892,14 +1269,14 @@ export default function ChatPage() {
 
       {/* Modal de Perfil */}
       {isProfileModalOpen && selectedChatDetails?.profile && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-gray-800 rounded-lg w-full max-w-2xl">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl w-full max-w-2xl shadow-xl">
             <div className="p-6">
               <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-bold text-white">Perfil del Lead</h3>
+                <h3 className="text-xl font-bold text-gray-800">Perfil del Lead</h3>
                 <button
                   onClick={() => setIsProfileModalOpen(false)}
-                  className="text-gray-400 hover:text-white"
+                  className="text-gray-500 hover:text-gray-700 p-1.5 rounded-full hover:bg-gray-100 transition-colors"
                 >
                   <XCircleIcon className="w-6 h-6" />
                 </button>
@@ -915,78 +1292,78 @@ export default function ChatPage() {
                   console.error('Error al actualizar el perfil:', error);
                   alert('Error al actualizar el perfil');
                 }
-              }} className="space-y-4">
+              }} className="space-y-5">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     Nombre del Cliente
                   </label>
                   <input
                     type="text"
                     value={profileFormData.name_client || selectedChatDetails.profile.name_client}
                     onChange={(e) => setProfileFormData(prev => ({ ...prev, name_client: e.target.value }))}
-                    className="w-full bg-gray-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full bg-white text-gray-800 border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     Nombre de la Empresa
                   </label>
                   <input
                     type="text"
                     value={profileFormData.name_company || selectedChatDetails.profile.name_company || ''}
                     onChange={(e) => setProfileFormData(prev => ({ ...prev, name_company: e.target.value }))}
-                    className="w-full bg-gray-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full bg-white text-gray-800 border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     Descripción de la Empresa
                   </label>
                   <textarea
                     value={profileFormData.description_company || selectedChatDetails.profile.description_company || ''}
                     onChange={(e) => setProfileFormData(prev => ({ ...prev, description_company: e.target.value }))}
-                    className="w-full bg-gray-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary h-24 resize-none"
+                    className="w-full bg-white text-gray-800 border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent h-24 resize-none"
                   />
                 </div>
 
                 <div className="grid grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
                       Instagram
                     </label>
                     <input
                       type="text"
                       value={profileFormData.instagram || selectedChatDetails.profile.instagram || ''}
                       onChange={(e) => setProfileFormData(prev => ({ ...prev, instagram: e.target.value }))}
-                      className="w-full bg-gray-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
+                      className="w-full bg-white text-gray-800 border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                       placeholder="@usuario"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
                       Facebook
                     </label>
                     <input
                       type="text"
                       value={profileFormData.facebook || selectedChatDetails.profile.facebook || ''}
                       onChange={(e) => setProfileFormData(prev => ({ ...prev, facebook: e.target.value }))}
-                      className="w-full bg-gray-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
+                      className="w-full bg-white text-gray-800 border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                       placeholder="@usuario"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
                       X (Twitter)
                     </label>
                     <input
                       type="text"
                       value={profileFormData.x || selectedChatDetails.profile.x || ''}
                       onChange={(e) => setProfileFormData(prev => ({ ...prev, x: e.target.value }))}
-                      className="w-full bg-gray-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
+                      className="w-full bg-white text-gray-800 border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                       placeholder="@usuario"
                     />
                   </div>
@@ -996,13 +1373,13 @@ export default function ChatPage() {
                   <button
                     type="button"
                     onClick={() => setIsProfileModalOpen(false)}
-                    className="px-4 py-2 text-gray-300 hover:text-white transition-colors"
+                    className="px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors"
+                    className="px-4 py-2.5 bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors"
                   >
                     Guardar Cambios
                   </button>
@@ -1015,52 +1392,133 @@ export default function ChatPage() {
 
       {/* Modal de Templates */}
       {isTemplateModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-gray-800 rounded-lg w-full max-w-2xl">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl w-full max-w-2xl shadow-xl">
             <div className="p-6">
               <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-bold text-white">Templates</h3>
+                <h3 className="text-xl font-bold text-gray-800">Plantillas de Mensajes</h3>
                 <button
                   onClick={() => setIsTemplateModalOpen(false)}
-                  className="text-gray-400 hover:text-white"
+                  className="text-gray-500 hover:text-gray-700 p-1.5 rounded-full hover:bg-gray-100 transition-colors"
                 >
                   <XCircleIcon className="w-6 h-6" />
                 </button>
               </div>
               
-              <div className="space-y-4 max-h-[60vh] overflow-y-auto">
-                {templates.map((template) => (
-                  <div
-                    key={template.id}
-                    className="bg-gray-700 rounded-lg p-4 hover:bg-gray-600 cursor-pointer transition-colors"
-                    onClick={() => handleTemplateSelect(template)}
-                  >
-                    <h4 className="text-white font-medium mb-2">{template.name_template}</h4>
-                    <p className="text-gray-300 text-sm">{template.template}</p>
-                    <div className="flex gap-2 mt-2">
-                      {template.tags.split(',').map((tag, i) => (
-                        <span key={i} className="text-xs bg-gray-800 text-gray-300 px-2 py-1 rounded">
-                          {tag.trim()}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-                
-                {templates.length === 0 && (
-                  <div className="text-center py-8">
-                    <p className="text-gray-400">No hay templates disponibles</p>
-                    <button
-                      onClick={() => {
-                        setIsTemplateModalOpen(false);
-                        // Aquí podrías añadir navegación a la página de templates
-                      }}
-                      className="mt-4 text-primary hover:text-primary-hover transition-colors"
+              <div className="max-h-[60vh] overflow-y-auto pr-2">
+                <div className="space-y-3">
+                  {templates.map((template) => (
+                    <div
+                      key={template.id}
+                      className="bg-gray-50 hover:bg-gray-100 rounded-xl p-4 cursor-pointer transition-all border border-gray-200 hover:border-gray-300"
+                      onClick={() => handleTemplateSelect(template)}
                     >
-                      Crear nuevo template
-                    </button>
+                      <h4 className="text-gray-800 font-medium mb-2">{template.name_template}</h4>
+                      <p className="text-gray-600 text-sm">{template.template}</p>
+                      <div className="flex gap-2 mt-3 flex-wrap">
+                        {template.tags.split(',').map((tag, i) => (
+                          <span key={i} className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded-full">
+                            {tag.trim()}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {templates.length === 0 && (
+                    <div className="text-center py-12 bg-gray-50 rounded-xl border border-gray-200">
+                      <DocumentTextIcon className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+                      <p className="text-gray-600 font-medium">No hay plantillas disponibles</p>
+                      <p className="text-gray-500 text-sm mt-1 mb-4">Crea nuevas plantillas para agilizar tus respuestas</p>
+                      <a
+                        href="/dashboard/templates"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors"
+                      >
+                        <PlusIcon className="w-5 h-5" />
+                        <span>Crear nueva plantilla</span>
+                      </a>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Variables de Template */}
+      {isVariablesModalOpen && selectedTemplate && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl w-full max-w-2xl shadow-xl">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold text-gray-800">Personalizar variables</h3>
+                <button
+                  onClick={() => setIsVariablesModalOpen(false)}
+                  className="text-gray-500 hover:text-gray-700 p-1.5 rounded-full hover:bg-gray-100 transition-colors"
+                >
+                  <XCircleIcon className="w-6 h-6" />
+                </button>
+              </div>
+              
+              <div className="mb-6">
+                <p className="text-gray-600 mb-4">Por favor, completa las siguientes variables para personalizar tu mensaje:</p>
+                
+                <div className="bg-gray-50 p-4 rounded-lg mb-6 border border-gray-200">
+                  <h4 className="font-medium text-gray-700 mb-2">Vista previa:</h4>
+                  <div className="bg-white p-3 rounded-lg border border-gray-200 text-gray-700 min-h-16">
+                    {processedMessage || (
+                      <span className="text-gray-400 italic">Completa las variables para ver la vista previa</span>
+                    )}
                   </div>
-                )}
+                </div>
+                
+                <div className="space-y-4">
+                  {Object.entries(templateVariables).map(([key, value]) => (
+                    <div key={key}>
+                      <label className="block text-sm font-medium text-gray-700 mb-1 capitalize">
+                        {key === 'name' ? 'Nombre del cliente' : key}
+                      </label>
+                      <input
+                        type="text"
+                        value={value}
+                        onChange={(e) => {
+                          const updatedVars = {
+                            ...templateVariables,
+                            [key]: e.target.value
+                          };
+                          setTemplateVariables(updatedVars);
+                          
+                          // Actualizar la vista previa
+                          let processed = selectedTemplate.template;
+                          Object.entries(updatedVars).forEach(([k, v]) => {
+                            processed = processed.replace(new RegExp(`\\{\\{${k}\\}\\}`, 'g'), v);
+                          });
+                          setProcessedMessage(processed);
+                        }}
+                        className="w-full bg-white text-gray-800 border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                        placeholder={`Valor para {{${key}}}`}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              <div className="flex justify-end space-x-3">
+                <button
+                  type="button"
+                  onClick={() => setIsVariablesModalOpen(false)}
+                  className="px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleApplyTemplate}
+                  className="px-4 py-2.5 bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors"
+                >
+                  Aplicar plantilla
+                </button>
               </div>
             </div>
           </div>

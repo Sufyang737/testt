@@ -41,12 +41,17 @@ module.exports = {
           '0%': { strokeDashoffset: '180' },
           '100%': { strokeDashoffset: '0' },
         },
+        'pulse-slow': {
+          '0%, 100%': { opacity: 1 },
+          '50%': { opacity: 0.8 },
+        },
       },
       animation: {
         'draw-circle-1': 'draw-circle-1 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards',
         'draw-lines': 'draw-lines 0.4s cubic-bezier(0.4, 0, 0.2, 1) 0.6s forwards',
         'draw-top-lines': 'draw-top-lines 0.3s cubic-bezier(0.4, 0, 0.2, 1) 1s forwards',
         'draw-horizontal-lines': 'draw-horizontal-lines 0.4s cubic-bezier(0.4, 0, 0.2, 1) 1.3s forwards',
+        'pulse-slow': 'pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
       },
     },
   },

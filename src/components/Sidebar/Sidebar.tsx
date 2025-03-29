@@ -62,27 +62,46 @@ export const Sidebar = () => {
   ];
 
   return (
-    <aside className={`h-screen transition-all duration-300 ease-in-out ${open ? 'w-64' : 'w-20'} flex-shrink-0`}>
+    <aside className={`h-screen transition-all duration-300 ease-in-out ${open ? 'w-64' : 'w-20'} flex-shrink-0 relative`}>
       <nav className="h-full flex flex-col bg-white border-r border-gray-200 shadow-md">
         {/* Header */}
         <div className="h-16 flex items-center justify-between px-4 border-b border-gray-200">
           <div className={`flex items-center ${!open && 'justify-center w-full'}`}>
-            <div className={`relative ${open ? 'w-32' : 'w-8'} h-8`}>
+            <div className={`relative ${open ? 'w-10' : 'w-8'} h-8 flex-shrink-0`}>
               <Image
-                src={open ? "/images/ClostechLogo.png" : "/images/LogoIcon.png"}
+                src="/images/Magofinal2.png"
                 alt="Logo"
                 fill
                 className="object-contain"
                 priority
               />
             </div>
+            {open && (
+              <div className="ml-3 overflow-hidden">
+                <h1 className="text-lg font-bold bg-gradient-to-r from-primary to-primary-light bg-clip-text text-transparent">Mago Final</h1>
+                <p className="text-xs text-gray-600 leading-tight truncate">Tu asistente inteligente</p>
+              </div>
+            )}
           </div>
-          <button 
-            onClick={() => setOpen(!open)}
-            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-          >
-            <ChevronLeftIcon className={`w-5 h-5 text-gray-700 transition-transform ${!open && 'rotate-180'}`}/>
-          </button>
+          {open ? (
+            <button 
+              onClick={() => setOpen(false)}
+              className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              title="Colapsar menú"
+            >
+              <ChevronLeftIcon className="w-5 h-5 text-gray-700" />
+            </button>
+          ) : (
+            <div className="absolute -right-3 top-16 z-10">
+              <button 
+                onClick={() => setOpen(true)}
+                className="bg-white p-1.5 rounded-full border border-gray-200 shadow-md hover:shadow-lg hover:bg-primary hover:border-primary group transition-all duration-300 hover:scale-110 animate-pulse-slow flex items-center justify-center"
+                title="Expandir menú"
+              >
+                <ChevronLeftIcon className="w-4 h-4 text-primary group-hover:text-white rotate-180" />
+              </button>
+            </div>
+          )}
         </div>
 
         {/* User Profile */}

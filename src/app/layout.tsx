@@ -6,8 +6,21 @@ import { Providers } from '@/util/Providers';
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Iowi",
-  description: "",
+  title: "Mago Final",
+  description: "Tu asistente mágico de IA",
+  icons: {
+    icon: [
+      {
+        url: '/favicon.ico',
+        sizes: 'any',
+      },
+      {
+        url: '/images/Magofinal2.png',
+        type: 'image/png',
+      }
+    ],
+    apple: '/images/Magofinal2.png',
+  }
 };
 
 export default function RootLayout({
