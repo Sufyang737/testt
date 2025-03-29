@@ -269,195 +269,215 @@ export default function TemplatesPage() {
 
   if (isLoading) {
     return (
-      <div className="h-[calc(100vh-70px)] w-full bg-bgCoal flex items-center justify-center">
-        <div className="text-white">Cargando templates...</div>
+      <div className="p-6 w-full flex items-center justify-center">
+        <div className="text-gray-700">Cargando templates...</div>
       </div>
     );
   }
 
   return (
-    <div className="h-[calc(100vh-70px)] w-full bg-bgCoal p-6">
-      <div className="max-w-4xl mx-auto">
-        {/* Tabs */}
-        <div className="flex space-x-4 mb-6">
-          <button
-            onClick={() => setActiveTab('prebuilt')}
-            className={`px-4 py-2 rounded-lg transition-colors ${
-              activeTab === 'prebuilt'
-                ? 'bg-prinFuchsia text-white'
-                : 'bg-gray-800 text-gray-400 hover:text-white'
-            }`}
-          >
-            Templates Pre-armados
-          </button>
-          <button
-            onClick={() => setActiveTab('custom')}
-            className={`px-4 py-2 rounded-lg transition-colors ${
-              activeTab === 'custom'
-                ? 'bg-prinFuchsia text-white'
-                : 'bg-gray-800 text-gray-400 hover:text-white'
-            }`}
-          >
-            Mis Templates
-          </button>
-        </div>
-
-        {error && (
-          <div className="bg-red-500/10 border border-red-500 text-red-500 p-4 rounded-lg mb-6">
-            {error}
-          </div>
-        )}
-
-        {/* Contenido principal */}
-        <div className="space-y-4">
-          {activeTab === 'prebuilt' ? (
-            // Templates pre-armados
-            <div className="space-y-4">
-              {PREBUILT_TEMPLATES.map((template, index) => (
-                <div
-                  key={index}
-                  className="bg-gray-800 rounded-lg p-4 flex justify-between items-start hover:border hover:border-gray-700"
+    <div className="p-6">
+      <div className="w-full max-w-7xl mx-auto">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          {/* Header */}
+          <div className="p-6 border-b border-gray-200 bg-gray-50">
+            <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-800">Templates</h1>
+                <p className="text-gray-500 text-sm mt-1">Crea y gestiona tus plantillas de mensajes predefinidos</p>
+              </div>
+              
+              {/* Tabs */}
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => setActiveTab('prebuilt')}
+                  className={`px-4 py-2 rounded-lg transition-colors ${
+                    activeTab === 'prebuilt'
+                      ? 'bg-primary text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
                 >
-                  <div className="flex-1">
-                    <h3 className="text-white font-medium">{template.name_template}</h3>
-                    <p className="text-gray-400 text-sm mt-1">{template.template}</p>
-                    <div className="flex gap-2 mt-2">
+                  Templates Pre-armados
+                </button>
+                <button
+                  onClick={() => setActiveTab('custom')}
+                  className={`px-4 py-2 rounded-lg transition-colors ${
+                    activeTab === 'custom'
+                      ? 'bg-primary text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  Mis Templates
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {error && (
+            <div className="m-6 bg-red-50 border border-red-200 text-red-600 p-4 rounded-lg">
+              {error}
+            </div>
+          )}
+
+          {/* Contenido principal */}
+          <div className="p-6">
+            {activeTab === 'prebuilt' ? (
+              // Templates pre-armados
+              <div className="grid gap-4 md:grid-cols-2">
+                {PREBUILT_TEMPLATES.map((template, index) => (
+                  <div
+                    key={index}
+                    className="bg-white border border-gray-200 rounded-xl p-5 hover:shadow-md transition-shadow flex flex-col"
+                  >
+                    <div className="flex justify-between items-start mb-3">
+                      <h3 className="text-gray-800 font-medium text-lg">{template.name_template}</h3>
+                      <button
+                        onClick={() => handleUsePrebuilt(template)}
+                        className="text-gray-500 hover:text-primary transition-colors p-1.5 rounded-full hover:bg-gray-100"
+                        title="Usar template"
+                      >
+                        <DocumentDuplicateIcon className="w-5 h-5" />
+                      </button>
+                    </div>
+                    <p className="text-gray-600 text-sm mt-1 flex-grow">{template.template}</p>
+                    <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-gray-100">
                       {template.tags.split(',').map((tag, i) => (
-                        <span key={i} className="text-xs bg-gray-700 text-gray-300 px-2 py-1 rounded">
+                        <span key={i} className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-lg">
                           {tag.trim()}
                         </span>
                       ))}
                     </div>
                   </div>
-                  <button
-                    onClick={() => handleUsePrebuilt(template)}
-                    className="ml-4 text-gray-400 hover:text-white transition-colors p-2 hover:bg-gray-700 rounded-lg"
-                    title="Usar template"
-                  >
-                    <DocumentDuplicateIcon className="w-5 h-5" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          ) : (
-            // Templates personalizados
-            <div>
-              <div className="flex justify-end mb-4">
-                <button
-                  onClick={() => {
-                    setCurrentTemplate(null);
-                    setFormData({
-                      name_template: '',
-                      template: '',
-                      tags: '',
-                      variables: DEFAULT_VARIABLES.join(', ')
-                    });
-                    setIsModalOpen(true);
-                  }}
-                  className="flex items-center px-4 py-2 bg-prinFuchsia text-white rounded-lg hover:bg-opacity-90 transition-colors"
-                >
-                  <PlusIcon className="w-5 h-5 mr-2" />
-                  Nuevo Template
-                </button>
+                ))}
               </div>
-
-              {templates.length === 0 ? (
-                <div className="bg-gray-800 rounded-lg p-6 text-center">
-                  <p className="text-gray-400">No tienes templates personalizados</p>
+            ) : (
+              // Templates personalizados
+              <div>
+                <div className="flex justify-end mb-6">
                   <button
-                    onClick={() => setActiveTab('prebuilt')}
-                    className="mt-4 text-prinFuchsia hover:text-prinFuchsia/80 transition-colors"
+                    onClick={() => {
+                      setCurrentTemplate(null);
+                      setFormData({
+                        name_template: '',
+                        template: '',
+                        tags: '',
+                        variables: DEFAULT_VARIABLES.join(', ')
+                      });
+                      setIsModalOpen(true);
+                    }}
+                    className="bg-primary text-white px-4 py-2.5 rounded-lg hover:bg-primary-hover transition-colors flex items-center gap-2 shadow-sm"
                   >
-                    Ver templates pre-armados
+                    <PlusIcon className="w-5 h-5" />
+                    <span>Nuevo Template</span>
                   </button>
                 </div>
-              ) : (
-                <div className="space-y-4">
-                  {templates.map((template) => (
-                    <div
-                      key={template.id}
-                      className="bg-gray-800 rounded-lg p-4 flex justify-between items-start hover:border hover:border-gray-700"
+
+                {templates.length === 0 ? (
+                  <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <p className="text-gray-500 mt-4">No tienes templates personalizados</p>
+                    <button
+                      onClick={() => setActiveTab('prebuilt')}
+                      className="mt-2 text-primary hover:text-primary-hover text-sm"
                     >
-                      <div className="flex-1">
-                        <h3 className="text-white font-medium flex items-center gap-2">
-                          {template.name_template}
-                          {template.is_prebuilt && (
-                            <span className="text-xs bg-prinFuchsia/20 text-prinFuchsia px-2 py-1 rounded">
-                              Pre-armado
-                            </span>
-                          )}
-                        </h3>
-                        <p className="text-gray-400 text-sm mt-1">{template.template}</p>
-                        <div className="flex gap-2 mt-2">
+                      Ver templates pre-armados
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {templates.map((template) => (
+                      <div
+                        key={template.id}
+                        className="bg-white border border-gray-200 rounded-xl p-5 hover:shadow-md transition-shadow flex flex-col"
+                      >
+                        <div className="flex justify-between items-start mb-3">
+                          <h3 className="text-gray-800 font-medium text-lg flex items-center gap-2">
+                            {template.name_template}
+                            {template.is_prebuilt && (
+                              <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
+                                Pre-armado
+                              </span>
+                            )}
+                          </h3>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleEdit(template)}
+                              className="text-gray-500 hover:text-primary transition-colors p-1.5 rounded-full hover:bg-gray-100"
+                              title="Editar template"
+                            >
+                              <PencilIcon className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(template.id)}
+                              className="text-gray-500 hover:text-red-500 transition-colors p-1.5 rounded-full hover:bg-gray-100"
+                              title="Eliminar template"
+                            >
+                              <TrashIcon className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                        <p className="text-gray-600 text-sm mt-1 flex-grow">{template.template}</p>
+                        <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-gray-100">
                           {template.tags.split(',').map((tag, i) => (
-                            <span key={i} className="text-xs bg-gray-700 text-gray-300 px-2 py-1 rounded">
+                            <span key={i} className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-lg">
                               {tag.trim()}
                             </span>
                           ))}
                         </div>
                       </div>
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => handleEdit(template)}
-                          className="text-gray-400 hover:text-white transition-colors p-2 hover:bg-gray-700 rounded-lg"
-                          title="Editar"
-                        >
-                          <PencilIcon className="w-5 h-5" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(template.id)}
-                          className="text-gray-400 hover:text-red-500 transition-colors p-2 hover:bg-gray-700 rounded-lg"
-                          title="Eliminar"
-                        >
-                          <TrashIcon className="w-5 h-5" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
+      </div>
 
-        {/* Modal de edición/creación */}
-        {isModalOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-gray-800 rounded-lg w-full max-w-5xl flex">
+      {/* Modal de edición/creación */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 backdrop-blur-sm" onClick={() => setIsModalOpen(false)}>
+          <div className="bg-white rounded-2xl w-full max-w-5xl shadow-xl mx-auto my-0" onClick={(e) => e.stopPropagation()}>
+            <div className="flex flex-col md:flex-row h-full">
               {/* Formulario principal */}
-              <div className="flex-1 p-6 border-r border-gray-700">
-                <h2 className="text-xl font-bold text-white mb-4">
+              <div className="flex-1 p-6">
+                <h2 className="text-xl font-bold text-gray-800 mb-4">
                   {currentTemplate ? 'Editar Template' : 'Nuevo Template'}
                 </h2>
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleSubmit} className="space-y-6">
                   <div>
-                    <label className="block text-gray-300 mb-2" htmlFor="name">
-                      Nombre
+                    <label className="block text-gray-700 text-base font-medium mb-2" htmlFor="name">
+                      Nombre*
                     </label>
                     <input
                       id="name"
                       type="text"
                       value={formData.name_template}
                       onChange={(e) => setFormData({ ...formData, name_template: e.target.value })}
-                      className="w-full bg-gray-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-prinFuchsia"
+                      className="w-full bg-white text-gray-700 border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                       required
+                      placeholder="Ej: Saludo inicial"
                     />
                   </div>
+                  
                   <div>
-                    <label className="block text-gray-300 mb-2" htmlFor="template">
-                      Mensaje
+                    <label className="block text-gray-700 text-base font-medium mb-2" htmlFor="template">
+                      Mensaje*
                     </label>
                     <textarea
                       id="template"
                       value={formData.template}
                       onChange={(e) => setFormData({ ...formData, template: e.target.value })}
-                      className="w-full bg-gray-700 text-white rounded-lg px-4 py-2 h-40 focus:outline-none focus:ring-2 focus:ring-prinFuchsia"
+                      className="w-full bg-white text-gray-700 border border-gray-300 rounded-lg px-4 py-3 h-32 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
                       required
                       placeholder="Escribe tu mensaje aquí usando las variables disponibles..."
                     />
                   </div>
+                  
                   <div>
-                    <label className="block text-gray-300 mb-2" htmlFor="tags">
+                    <label className="block text-gray-700 text-base font-medium mb-2" htmlFor="tags">
                       Etiquetas (separadas por comas)
                     </label>
                     <input
@@ -465,41 +485,42 @@ export default function TemplatesPage() {
                       type="text"
                       value={formData.tags}
                       onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
-                      className="w-full bg-gray-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-prinFuchsia"
-                      placeholder="ejemplo: saludo, bienvenida"
+                      className="w-full bg-white text-gray-700 border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                      placeholder="Ej: saludo, bienvenida"
                     />
                   </div>
-                  <div className="flex justify-end space-x-4 pt-4">
+                  
+                  <div className="pt-4 flex justify-center space-x-4 w-full">
                     <button
                       type="button"
                       onClick={() => setIsModalOpen(false)}
-                      className="px-4 py-2 text-gray-300 hover:text-white transition-colors"
+                      className="w-1/2 py-3.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium text-base"
                     >
                       Cancelar
                     </button>
                     <button
                       type="submit"
-                      className="px-4 py-2 bg-prinFuchsia text-white rounded-lg hover:bg-opacity-90 transition-colors"
+                      className="w-1/2 py-3.5 bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors font-medium text-base flex items-center justify-center"
                     >
-                      {currentTemplate ? 'Guardar' : 'Crear'}
+                      {currentTemplate ? 'Guardar Cambios' : 'Crear Template'}
                     </button>
                   </div>
                 </form>
               </div>
 
               {/* Sidebar con información de variables */}
-              <div className="w-80 p-6 bg-gray-900 rounded-r-lg">
-                <h3 className="text-lg font-medium text-white mb-4">Variables Disponibles</h3>
+              <div className="w-80 p-6 border-l border-gray-200">
+                <h3 className="text-base font-medium text-gray-700 mb-4">Variables Disponibles</h3>
                 
                 {/* Tabs para categorías de variables */}
-                <div className="flex space-x-2 mb-6">
+                <div className="flex space-x-2 mb-4">
                   <button
                     type="button"
                     onClick={() => setVariableTab('client')}
                     className={`px-3 py-2 rounded-lg text-sm transition-colors flex-1 ${
                       variableTab === 'client'
-                        ? 'bg-prinFuchsia text-white'
-                        : 'bg-gray-800 text-gray-400 hover:text-white'
+                        ? 'bg-primary text-white'
+                        : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
                     }`}
                   >
                     Cliente
@@ -509,15 +530,15 @@ export default function TemplatesPage() {
                     onClick={() => setVariableTab('product')}
                     className={`px-3 py-2 rounded-lg text-sm transition-colors flex-1 ${
                       variableTab === 'product'
-                        ? 'bg-prinFuchsia text-white'
-                        : 'bg-gray-800 text-gray-400 hover:text-white'
+                        ? 'bg-primary text-white'
+                        : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
                     }`}
                   >
                     Producto
                   </button>
                 </div>
 
-                <div className="space-y-6 max-h-[calc(100vh-400px)] overflow-y-auto">
+                <div className="space-y-3 max-h-[400px] overflow-y-auto">
                   {VARIABLE_EXAMPLES.filter(item => {
                     if (variableTab === 'client') {
                       return item.variable.startsWith('{{user') || 
@@ -530,9 +551,9 @@ export default function TemplatesPage() {
                              item.variable.startsWith('{{order');
                     }
                   }).map((item, index) => (
-                    <div key={index} className="space-y-2 bg-gray-800/50 p-3 rounded-lg">
+                    <div key={index} className="bg-gray-50 p-3 rounded-lg hover:bg-gray-100 transition-all">
                       <div className="flex items-center justify-between">
-                        <code className="text-white font-bold bg-gray-800 px-2 py-1 rounded text-sm">
+                        <code className="text-gray-700 font-bold bg-white px-2 py-1 rounded text-sm border border-gray-200">
                           {item.variable}
                         </code>
                         <button
@@ -549,36 +570,36 @@ export default function TemplatesPage() {
                               textarea.setSelectionRange(start + item.variable.length, start + item.variable.length);
                             }
                           }}
-                          className="text-white/70 hover:text-white text-sm flex items-center gap-1 transition-colors"
+                          className="text-primary hover:text-primary-hover text-sm"
                         >
-                          <span>Insertar</span>
+                          Insertar
                         </button>
                       </div>
-                      <p className="text-white text-sm">
+                      <p className="text-gray-700 text-sm mt-1">
                         {item.description}
                       </p>
-                      <p className="text-white/70 text-sm italic">
+                      <p className="text-gray-500 text-xs mt-1">
                         Ejemplo: {item.example}
                       </p>
                     </div>
                   ))}
                 </div>
 
-                <div className="mt-6 p-4 bg-gray-800 rounded-lg">
-                  <h4 className="text-white font-medium mb-2">Ejemplo de uso</h4>
-                  <p className="text-white/70 text-sm">
+                <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+                  <h4 className="text-gray-700 font-medium mb-2 text-sm">Ejemplo de uso</h4>
+                  <p className="text-gray-600 text-sm">
                     {variableTab === 'client' ? (
-                      <>Hola <span className="text-white font-bold">{'{{user.name}}'}</span>, gracias por contactar a <span className="text-white font-bold">{'{{user.company}}'}</span>. Te responderemos lo antes posible.</>
+                      <>Hola <span className="text-primary font-semibold">{'{{user.name}}'}</span>, gracias por contactar a <span className="text-primary font-semibold">{'{{user.company}}'}</span>. Te responderemos lo antes posible.</>
                     ) : (
-                      <>El producto <span className="text-white font-bold">{'{{product.name}}'}</span> tiene un precio de <span className="text-white font-bold">{'{{product.price}}'}</span>. Tu orden #<span className="text-white font-bold">{'{{order.id}}'}</span> está en proceso.</>
+                      <>El producto <span className="text-primary font-semibold">{'{{product.name}}'}</span> tiene un precio de <span className="text-primary font-semibold">{'{{product.price}}'}</span>. Tu orden #<span className="text-primary font-semibold">{'{{order.id}}'}</span> está en proceso.</>
                     )}
                   </p>
                 </div>
               </div>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 } 

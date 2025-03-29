@@ -20,17 +20,30 @@
 }
 
 body {
-  background-color: #000000;
+  background-color: #f0f4f8;
+}
+
+/* Estilos para las tarjetas de contenido */
+.content-card {
+  @apply bg-white rounded-xl border border-gray-200 shadow-sm;
+}
+
+.stat-card {
+  @apply bg-white rounded-xl border border-gray-200 shadow-sm p-4;
+}
+
+.chart-card {
+  @apply bg-white rounded-xl border border-gray-200 shadow-sm p-5;
 }
 
 .scroll-container {
   white-space: nowrap; 
   width: 100%;
-  scrollbar-color: #3626A7 #000000;
+  scrollbar-color: #7e25ea #f0f4f8;
 }
 
 .scroll-bar-modal {
   white-space: nowrap; 
   width: 100%;
-  scrollbar-color: #3626A7 #000000;
+  scrollbar-color: #7e25ea #f0f4f8;
 }

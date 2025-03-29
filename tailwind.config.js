@@ -8,10 +8,16 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        primary: '#3626A7',
-        'primary-hover': '#2B1F85',
-        secondary: '#B80C09',
-        'secondary-hover': '#940A07',
+        primary: '#7e25ea',
+        'primary-hover': '#6a1fd0',
+        'primary-light': '#9b4df2',
+        'primary-dark': '#5a19b0',
+        'primary-bg': '#f3eaff',
+        secondary: '#06c8b5',
+        'secondary-hover': '#05a69a',
+        'secondary-light': '#21e6d3',
+        'secondary-dark': '#049086',
+        'secondary-bg': '#e0faf8',
         bgCoal: '#000000',
         txtWhite: '#EFEFEF',
       },

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
+import IsLogged from '@/components/Authentication/isLogged';
 
 export default function WhatsAppConnect() {
   const router = useRouter();
@@ -120,92 +121,94 @@ export default function WhatsAppConnect() {
   };
 
   return (
-    <div className="flex h-screen bg-[#111b21]">
-      <div className="w-full flex flex-col items-center justify-center p-8">
-        <div className="max-w-md w-full bg-[#202c33] rounded-lg shadow-xl p-8">
-          <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold text-white mb-2">
-              Conectar WhatsApp
-            </h1>
-            <p className="text-gray-400">
-              {getStatusMessage()}
-            </p>
-          </div>
-
-          {status === 'WAITING_QR' && qrCode && (
-            <div className="flex justify-center mb-8">
-              <div className="bg-white p-4 rounded-lg">
-                <img src={qrCode} alt="QR Code" className="w-64 h-64" />
-              </div>
-            </div>
-          )}
-
-          {status === 'CONNECTED' && (
+    <IsLogged>
+      <div className="flex h-screen bg-[#111b21]">
+        <div className="w-full flex flex-col items-center justify-center p-8">
+          <div className="max-w-md w-full bg-[#202c33] rounded-lg shadow-xl p-8">
             <div className="text-center mb-8">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-500/20 mb-4">
-                <svg
-                  className="w-8 h-8 text-green-500"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-              </div>
-              <h2 className="text-xl font-semibold text-white mb-2">
-                ¡Conexión exitosa!
-              </h2>
-              <p className="text-gray-400 mb-6">
-                ¡Genial! Ahora configura tu perfil de negocio
+              <h1 className="text-2xl font-bold text-white mb-2">
+                Conectar WhatsApp
+              </h1>
+              <p className="text-gray-400">
+                {getStatusMessage()}
               </p>
-              <button
-                onClick={() => router.push('/business-profile')}
-                className="w-full bg-prinFuchsia hover:bg-prinFuchsia/90 text-white font-medium py-3 px-4 rounded-lg transition-all hover:shadow-lg flex items-center justify-center"
-              >
-                <span>Último paso: Configurar perfil</span>
-                <svg 
-                  xmlns="http://www.w3.org/2000/svg" 
-                  className="h-5 w-5 ml-2" 
-                  viewBox="0 0 20 20" 
-                  fill="currentColor"
+            </div>
+
+            {status === 'WAITING_QR' && qrCode && (
+              <div className="flex justify-center mb-8">
+                <div className="bg-white p-4 rounded-lg">
+                  <img src={qrCode} alt="QR Code" className="w-64 h-64" />
+                </div>
+              </div>
+            )}
+
+            {status === 'CONNECTED' && (
+              <div className="text-center mb-8">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-500/20 mb-4">
+                  <svg
+                    className="w-8 h-8 text-green-500"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                </div>
+                <h2 className="text-xl font-semibold text-white mb-2">
+                  ¡Conexión exitosa!
+                </h2>
+                <p className="text-gray-400 mb-6">
+                  ¡Genial! Ahora configura tu perfil de negocio
+                </p>
+                <button
+                  onClick={() => router.push('/business-profile')}
+                  className="w-full bg-prinFuchsia hover:bg-prinFuchsia/90 text-white font-medium py-3 px-4 rounded-lg transition-all hover:shadow-lg flex items-center justify-center"
                 >
-                  <path 
-                    fillRule="evenodd" 
-                    d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" 
-                    clipRule="evenodd" 
-                  />
-                </svg>
+                  <span>Último paso: Configurar perfil</span>
+                  <svg 
+                    xmlns="http://www.w3.org/2000/svg" 
+                    className="h-5 w-5 ml-2" 
+                    viewBox="0 0 20 20" 
+                    fill="currentColor"
+                  >
+                    <path 
+                      fillRule="evenodd" 
+                      d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" 
+                      clipRule="evenodd" 
+                    />
+                  </svg>
+                </button>
+              </div>
+            )}
+
+            {status === 'INITIAL' && (
+              <button
+                onClick={handleConnect}
+                disabled={loading}
+                className={`w-full flex items-center justify-center py-3 px-4 rounded-lg text-white font-medium transition-all
+                  ${loading
+                    ? 'bg-gray-600 cursor-not-allowed'
+                    : 'bg-green-600 hover:bg-green-700 hover:shadow-lg'
+                  }
+                `}
+              >
+                {loading ? 'Conectando...' : 'Conectar'}
               </button>
-            </div>
-          )}
+            )}
 
-          {status === 'INITIAL' && (
-            <button
-              onClick={handleConnect}
-              disabled={loading}
-              className={`w-full flex items-center justify-center py-3 px-4 rounded-lg text-white font-medium transition-all
-                ${loading
-                  ? 'bg-gray-600 cursor-not-allowed'
-                  : 'bg-green-600 hover:bg-green-700 hover:shadow-lg'
-                }
-              `}
-            >
-              {loading ? 'Conectando...' : 'Conectar'}
-            </button>
-          )}
-
-          {status === 'ERROR' && (
-            <div className="text-center text-red-500 mt-4">
-              <p>{error}</p>
-            </div>
-          )}
+            {status === 'ERROR' && (
+              <div className="text-center text-red-500 mt-4">
+                <p>{error}</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+    </IsLogged>
   );
 } 

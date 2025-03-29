@@ -36,12 +36,6 @@ export const Sidebar = () => {
       icon: ChartBarIcon
     },
     {
-      name: 'API Key',
-      href: '/dashboard/apikey',
-      active: pathname.includes('/dashboard/apikey'),
-      icon: KeyIcon
-    },
-    {
       name: 'Chat',
       href: '/dashboard/chat',
       active: pathname.includes('/dashboard/chat'),
@@ -69,9 +63,9 @@ export const Sidebar = () => {
 
   return (
     <aside className={`h-screen transition-all duration-300 ease-in-out ${open ? 'w-64' : 'w-20'} flex-shrink-0`}>
-      <nav className="h-full flex flex-col bg-[rgb(26,29,31)] border-r border-white/10">
+      <nav className="h-full flex flex-col bg-white border-r border-gray-200 shadow-md">
         {/* Header */}
-        <div className="h-16 flex items-center justify-between px-4">
+        <div className="h-16 flex items-center justify-between px-4 border-b border-gray-200">
           <div className={`flex items-center ${!open && 'justify-center w-full'}`}>
             <div className={`relative ${open ? 'w-32' : 'w-8'} h-8`}>
               <Image
@@ -85,26 +79,26 @@ export const Sidebar = () => {
           </div>
           <button 
             onClick={() => setOpen(!open)}
-            className="p-2 rounded-lg hover:bg-white/5"
+            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
           >
-            <ChevronLeftIcon className={`w-5 h-5 text-white transition-transform ${!open && 'rotate-180'}`}/>
+            <ChevronLeftIcon className={`w-5 h-5 text-gray-700 transition-transform ${!open && 'rotate-180'}`}/>
           </button>
         </div>
 
         {/* User Profile */}
-        <div className="px-4 py-4 border-b border-white/10">
+        <div className="px-4 py-4 border-b border-gray-200 bg-gray-50">
           <div className={`flex items-center gap-3 ${!open && 'justify-center'}`}>
             <UserButton afterSignOutUrl="/"/>
             {open && user && (
               <div className="flex flex-col">
-                <span className="text-sm font-medium text-white truncate">{user.fullName}</span>
-                <span className="text-xs text-white/50 truncate">{user.primaryEmailAddress?.emailAddress}</span>
+                <span className="text-sm font-medium text-gray-800 truncate">{user.fullName}</span>
+                <span className="text-xs text-gray-500 truncate">{user.primaryEmailAddress?.emailAddress}</span>
               </div>
             )}
           </div>
           {open && (
-            <div className="mt-3 px-3 py-2 bg-white/5 rounded-lg">
-              <span className="text-xs text-white/70">
+            <div className="mt-3 px-3 py-2 bg-primary/10 rounded-lg">
+              <span className="text-xs text-gray-700 font-medium">
                 {isLoading ? 'Cargando...' : isPaid ? 'Plan activo' : 
                  daysLeft > 0 ? `${daysLeft} días restantes de prueba` : 'Período de prueba finalizado'}
               </span>
@@ -113,18 +107,23 @@ export const Sidebar = () => {
         </div>
 
         {/* Navigation */}
-        <div className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+        <div className="flex-1 px-3 py-4 space-y-2 overflow-y-auto">
           {items.map((item) => (
             <Link
               key={item.name}
               href={item.href}
-              className={`relative flex items-center px-3 py-2 rounded-lg transition-colors
-                ${item.active ? 'bg-primary text-white' : 'text-white/70 hover:bg-white/5 hover:text-white'}
+              className={`relative flex items-center px-3 py-3 rounded-lg transition-all
+                ${item.active 
+                  ? 'bg-primary text-white shadow-md' 
+                  : 'text-gray-700 hover:bg-gray-100 hover:text-primary hover:translate-x-1'}
                 ${!open && 'justify-center px-2'}`}
             >
               <item.icon className={`${open ? 'w-5 h-5' : 'w-6 h-6'} flex-shrink-0`} />
               {open && (
                 <span className="ml-3 text-sm font-medium">{item.name}</span>
+              )}
+              {item.active && (
+                <div className="absolute left-0 top-0 h-full w-1 bg-secondary rounded-l"></div>
               )}
             </Link>
           ))}

@@ -1,15 +1,15 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter, usePathname } from "next/navigation";
 
-interface IsLoggedProps {
-  children?: React.ReactNode;
+interface ProtectedRouteProps {
+  children: React.ReactNode;
 }
 
-export default function IsLogged({ children }: IsLoggedProps) {
+export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { user, isLoaded: isUserLoaded } = useUser();
   const { isAuthenticated } = useAuth();
   const [isChecking, setIsChecking] = useState(true);
@@ -29,17 +29,19 @@ export default function IsLogged({ children }: IsLoggedProps) {
       return;
     }
 
+    // Para todas las demás rutas, verificamos la autenticación
     if (isUserLoaded) {
       if (!user) {
         // Si el usuario no está autenticado con Clerk, redirigir a autenticación
         router.push("/authentication");
       } else {
-        // Si hay usuario en Clerk, consideramos que está autenticado
-        // El middleware ya garantiza la protección a nivel de servidor
+        // Si hay usuario en Clerk, aceptamos que está autenticado
+        // y detenemos el spinner de carga
+        // El middleware ya garantiza protección a nivel de servidor
         setIsChecking(false);
       }
     }
-  }, [isUserLoaded, user, router, pathname]);
+  }, [isUserLoaded, user, router, pathname, publicRoutes]);
 
   // Timeout para evitar el spinner infinito (5 segundos máximo)
   useEffect(() => {
@@ -67,4 +69,4 @@ export default function IsLogged({ children }: IsLoggedProps) {
 
   // Si ha pasado la verificación o es una ruta pública, muestra los children
   return <>{children}</>;
-}
+} 

@@ -13,10 +13,11 @@ interface LayoutProps {
 export default function HeaderLayout({ children }: LayoutProps) {
   return (
     <Providers>
-      <SidebarLayout>
-        {children}
-      </SidebarLayout>
-      <IsLogged />
+      <IsLogged>
+        <SidebarLayout>
+          {children}
+        </SidebarLayout>
+      </IsLogged>
     </Providers>
   );
 }

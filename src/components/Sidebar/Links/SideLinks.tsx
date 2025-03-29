@@ -30,8 +30,9 @@ export const SideLinks: React.FC<SideLinksProps> = ({ links }) => {
             {hasSublinks ? (
               <div 
                 className={`left-3 w-full h-10 flex items-center rounded-md cursor-default 
-                  ${isActive ? 'bg-prinFuchsia' : ''}
-                  ${activeSubLink ? "text-prinFuchsia" : ""}
+                  ${isActive ? 'bg-primary' : ''}
+                  ${activeSubLink ? "text-primary font-semibold" : ""}
+                  transition-all duration-300
                 `}
               >
                 <p className='ml-3'>
@@ -41,10 +42,20 @@ export const SideLinks: React.FC<SideLinksProps> = ({ links }) => {
             ) : (
               <Link 
                 href={link.path} 
-                className={`left-3 w-full h-10 flex items-center rounded-md transition-colors duration-150
-                  ${isActive ? 'bg-prinFuchsia' : 'hover:bg-btnFuchsiaHov'}
+                className={`left-3 w-full h-10 flex items-center rounded-md transition-all duration-300
+                  ${isActive 
+                    ? 'bg-primary text-white shadow-md' 
+                    : 'hover:bg-primary-dark/10 hover:text-primary hover:translate-x-1'
+                  }
+                  relative overflow-hidden
                 `}
               >
+                <div 
+                  className={`absolute left-0 top-0 h-full w-1 bg-primary rounded-l 
+                    transition-all duration-300 
+                    ${isActive ? 'opacity-100' : 'opacity-0'}
+                  `}
+                ></div>
                 <p className='ml-3'>
                   {link.titleItem}
                 </p>

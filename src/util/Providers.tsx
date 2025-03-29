@@ -5,6 +5,7 @@ import { SidebarProvider } from "@/context/SidebarContext";
 import { PlanProvider } from '@/context/PlanContext';
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "@/context/AuthContext";
+import ProtectedRoute from '@/components/Authentication/ProtectedRoute';
 
 interface ProvidersProps {
   children: ReactNode;
@@ -19,7 +20,9 @@ export function Providers({ children }: ProvidersProps) {
         <AuthProvider>
           <SidebarProvider>
             <PlanProvider>
-              {children}
+              <ProtectedRoute>
+                {children}
+              </ProtectedRoute>
             </PlanProvider>
           </SidebarProvider>
         </AuthProvider>

@@ -3,7 +3,6 @@ import type { NextRequest } from "next/server";
 
 // Rutas públicas (no requieren autenticación)
 const publicRoutes = createRouteMatcher([
-  '/',
   '/sign-in(.*)',
   '/sign-up(.*)',
   '/authentication(.*)',
@@ -13,11 +12,25 @@ const publicRoutes = createRouteMatcher([
   '/api/webhook/clerk(.*)'
 ]);
 
+// Rutas que requieren autenticación explícitamente (incluyendo la ruta principal)
+const protectedRoutes = createRouteMatcher([
+  '/select-plan(.*)',
+  '/whatsapp(.*)',
+  '/business-profile(.*)',
+  '/dashboard(.*)', // Proteger todas las rutas del dashboard
+  '/api(?!/webhook/clerk|/ai|/apikeys/store|/apikeys/validate)(.*)', // Proteger APIs excepto webhook y algunas específicas
+]);
+
 export default clerkMiddleware((auth, req: NextRequest) => {
-  // Protección de rutas - solo usuarios autenticados pueden acceder a rutas no públicas
-  if (!publicRoutes(req)) {
-    auth.protect();
+  const path = req.nextUrl.pathname;
+  
+  // Si la ruta está en la lista de rutas públicas, permitir acceso sin autenticación
+  if (publicRoutes(req)) {
+    return;
   }
+  
+  // Si no está en la lista de rutas públicas, requiere autenticación
+  auth.protect();
 });
 
 export const config = {
