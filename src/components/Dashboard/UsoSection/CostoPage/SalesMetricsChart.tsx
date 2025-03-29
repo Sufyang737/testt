@@ -63,7 +63,17 @@ export const SalesMetricsChart: React.FC<SalesMetricsProps> = ({ clientId }) => 
   }
 
   if (error) {
-    return <div className="flex justify-center items-center h-full text-red-500">{error}</div>;
+    return (
+      <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
+        <div className="flex flex-col items-center justify-center py-6 text-center">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-gray-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <h3 className="text-md font-medium text-gray-700 mb-1">Datos no disponibles</h3>
+          <p className="text-gray-500 text-sm">No pudimos cargar las métricas de ventas en este momento.</p>
+        </div>
+      </div>
+    );
   }
 
   return (

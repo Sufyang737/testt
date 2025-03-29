@@ -117,8 +117,8 @@ export const sidebarItems = [
     icon: <FiActivity className="w-6 h-6" />,
   },
   {
-    title: "Notificaciones",
-    path: "/dashboard/notifications",
+    title: "Evaluaciones",
+    path: "/dashboard/clasificaciones",
     icon: <FiBell className="w-6 h-6" />,
   },
   {

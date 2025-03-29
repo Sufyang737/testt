@@ -82,7 +82,7 @@ export default function ActividadPage() {
         setLoading(false);
       } catch (err) {
         console.error('Error fetching usage data:', err);
-        setError(err instanceof Error ? err.message : 'Error fetching usage data');
+        setError('No pudimos cargar los datos de actividad en este momento');
         setLoading(false);
       }
     };
@@ -100,8 +100,20 @@ export default function ActividadPage() {
 
   if (error) {
     return (
-      <div className="flex justify-center items-center h-screen">
-        <div className="text-red-500">{error}</div>
+      <div className="flex justify-center items-center min-h-[calc(100vh-70px)]">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8 max-w-md text-center">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-gray-400 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <h3 className="text-lg font-medium text-gray-700 mb-2">No pudimos cargar los datos</h3>
+          <p className="text-gray-500 mb-4">La información de actividad no está disponible en este momento. Por favor, intenta más tarde.</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+          >
+            Intentar nuevamente
+          </button>
+        </div>
       </div>
     );
   }

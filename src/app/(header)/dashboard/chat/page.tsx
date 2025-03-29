@@ -256,6 +256,9 @@ export default function ChatPage() {
   useEffect(() => {
     // Crear el elemento de audio y configurar eventos
     const audio = new Audio('/sounds/notification.mp3');
+    audio.preload = 'auto';
+    audio.volume = 0.7; // Ajustar volumen a un nivel adecuado
+
     audio.addEventListener('canplaythrough', () => {
       console.log('Sonido de notificación cargado correctamente');
       setSoundLoaded(true);
@@ -272,11 +275,16 @@ export default function ChatPage() {
     
     document.addEventListener('visibilitychange', handleVisibilityChange);
     
-    // Solicitar permisos para notificaciones
-    if ('Notification' in window && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
-      Notification.requestPermission().then(permission => {
-        console.log('Permiso de notificación:', permission);
-      });
+    // Solicitar permisos para notificaciones inmediatamente al cargar
+    if ('Notification' in window) {
+      if (Notification.permission === 'default') {
+        // Solo mostramos la solicitud si está en estado default (no decidido)
+        setTimeout(() => {
+          Notification.requestPermission().then(permission => {
+            console.log('Permiso de notificación:', permission);
+          });
+        }, 2000); // Pequeño retraso para mejor experiencia de usuario
+      }
     }
     
     return () => {
@@ -346,23 +354,46 @@ export default function ChatPage() {
       if (notificationSoundRef.current && soundLoaded) {
         console.log('Intentando reproducir sonido');
         
-        // Reiniciar el audio para permitir reproducción repetida
-        notificationSoundRef.current.currentTime = 0;
-        
-        // Reproducir con manejo explícito de errores
-        notificationSoundRef.current.play()
-          .then(() => console.log('Sonido reproducido correctamente'))
-          .catch(err => console.error('Error reproduciendo sonido:', err));
+        // Clonamos el audio para evitar problemas con reproducciones simultáneas
+        try {
+          const soundClone = notificationSoundRef.current.cloneNode() as HTMLAudioElement;
+          soundClone.volume = notificationSoundRef.current.volume;
+          soundClone.play()
+            .then(() => console.log('Sonido reproducido correctamente'))
+            .catch(err => {
+              console.error('Error reproduciendo sonido:', err);
+              // Si falló el clon, intentamos con el original como respaldo
+              notificationSoundRef.current?.play().catch(e => console.error('Error en reproducción de respaldo:', e));
+            });
+        } catch (error) {
+          console.error('Error al clonar audio:', error);
+          // Intento de respaldo con el audio original
+          notificationSoundRef.current.currentTime = 0;
+          notificationSoundRef.current.play()
+            .catch(err => console.error('Error en reproducción de respaldo:', err));
+        }
       } else {
         console.warn('Elemento de audio no disponible o no cargado');
       }
       
       // Mostrar notificación nativa si está disponible y el usuario lo ha permitido
       if ('Notification' in window && Notification.permission === 'granted') {
-        new Notification('Nuevo mensaje de ' + chat.name, {
-          body: message,
-          icon: '/images/logo.png'
-        });
+        try {
+          const notification = new Notification('Nuevo mensaje de ' + chat.name, {
+            body: message,
+            icon: '/images/logo.png',
+            badge: '/favicon.ico',
+            tag: `chat-${chat.id}` // Agrupar notificaciones del mismo chat
+          });
+          
+          // Añadir click event para llevar al usuario al chat correspondiente
+          notification.onclick = () => {
+            window.focus();
+            setSelectedChat(chat.id);
+          };
+        } catch (error) {
+          console.error('Error al mostrar notificación:', error);
+        }
       }
       
       // Incrementar contador de notificaciones para este chat
@@ -371,7 +402,7 @@ export default function ChatPage() {
         [chat.id]: (prev[chat.id] || 0) + 1
       }));
     }
-  }, [isWindowActive, selectedChat, conversationBotStatus, soundLoaded]);
+  }, [isWindowActive, selectedChat, conversationBotStatus, soundLoaded, setSelectedChat]);
 
   // Modificar la función para procesar mensajes entrantes
   const handleIncomingMessage = useCallback((wahaMessage: WAHAWebhookMessage) => {

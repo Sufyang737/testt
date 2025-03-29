@@ -18,7 +18,7 @@ export const getErrorMessage = (error: unknown): string => {
   } else if (error && typeof error === "string") {
     message = error;
   } else {
-    message = "Something went wrong";
+    message = "Error al procesar la solicitud. Por favor, intenta nuevamente.";
   }
   return message;
 };
