@@ -106,11 +106,11 @@ export default function WhatsAppConnect() {
   const getStatusMessage = () => {
     switch (status) {
       case 'INITIAL':
-        return 'Haz clic en Conectar para comenzar';
+        return 'Prepara tu WhatsApp para vincular tu cuenta';
       case 'CREATING':
-        return 'Creando sesión...';
+        return 'Preparando tu sesión...';
       case 'WAITING_QR':
-        return 'Escanea el código QR con WhatsApp';
+        return 'Escanea el código QR con tu teléfono';
       case 'CONNECTED':
         return '¡WhatsApp conectado exitosamente!';
       case 'ERROR':
@@ -120,12 +120,22 @@ export default function WhatsAppConnect() {
     }
   };
 
+  // Componente para los pasos a seguir
+  const InstructionStep = ({ number, text }: { number: number, text: string }) => (
+    <div className="flex items-start mb-3">
+      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-green-500 text-white flex items-center justify-center mr-3 mt-0.5 text-xs font-medium">
+        {number}
+      </div>
+      <p className="text-gray-300 text-sm">{text}</p>
+    </div>
+  );
+
   return (
     <IsLogged>
       <div className="flex h-screen bg-[#111b21]">
         <div className="w-full flex flex-col items-center justify-center p-8">
           <div className="max-w-md w-full bg-[#202c33] rounded-lg shadow-xl p-8">
-            <div className="text-center mb-8">
+            <div className="text-center mb-6">
               <h1 className="text-2xl font-bold text-white mb-2">
                 Conectar WhatsApp
               </h1>
@@ -134,11 +144,58 @@ export default function WhatsAppConnect() {
               </p>
             </div>
 
-            {status === 'WAITING_QR' && qrCode && (
-              <div className="flex justify-center mb-8">
-                <div className="bg-white p-4 rounded-lg">
-                  <img src={qrCode} alt="QR Code" className="w-64 h-64" />
+            {status === 'INITIAL' && (
+              <div className="mb-6">
+                <div className="bg-[#182229] rounded-lg p-4 mb-6">
+                  <h2 className="text-white font-medium mb-3">Sigue estos pasos para conectar WhatsApp:</h2>
+                  <InstructionStep number={1} text="Asegúrate de tener WhatsApp instalado en tu teléfono." />
+                  <InstructionStep number={2} text="Cuando presiones 'Conectar', se mostrará un código QR." />
+                  <InstructionStep number={3} text="Abre WhatsApp en tu teléfono y toca Configuración (iOS) o los tres puntos (Android)." />
+                  <InstructionStep number={4} text="Selecciona 'Dispositivos vinculados' y luego 'Vincular un dispositivo'." />
+                  <InstructionStep number={5} text="Apunta la cámara de tu teléfono al código QR que aparecerá en pantalla." />
                 </div>
+                
+                <div className="bg-yellow-500/20 border border-yellow-400/30 rounded-lg p-3 flex items-start mb-6">
+                  <svg className="w-5 h-5 text-yellow-400 flex-shrink-0 mr-2 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <p className="text-yellow-300 text-sm">
+                    <span className="font-semibold">Importante:</span> No inicies la sesión hasta tener WhatsApp listo para escanear el código QR. El código tiene un tiempo limitado de validez.
+                  </p>
+                </div>
+                
+                <button
+                  onClick={handleConnect}
+                  disabled={loading}
+                  className={`w-full flex items-center justify-center py-3 px-4 rounded-lg text-white font-medium transition-all
+                    ${loading
+                      ? 'bg-gray-600 cursor-not-allowed'
+                      : 'bg-green-600 hover:bg-green-700 hover:shadow-lg'
+                    }
+                  `}
+                >
+                  {loading ? 'Preparando sesión...' : 'Conectar WhatsApp'}
+                </button>
+              </div>
+            )}
+
+            {status === 'WAITING_QR' && qrCode && (
+              <div className="mb-6">
+                <div className="bg-[#182229] rounded-lg p-4 mb-4">
+                  <h2 className="text-white font-medium mb-3">Escanea el código QR:</h2>
+                  <InstructionStep number={1} text="Abre WhatsApp en tu teléfono." />
+                  <InstructionStep number={2} text="Toca Configuración (iOS) o los tres puntos (Android)." />
+                  <InstructionStep number={3} text="Selecciona 'Dispositivos vinculados' y luego 'Vincular un dispositivo'." />
+                  <InstructionStep number={4} text="Apunta la cámara de tu teléfono al código QR." />
+                </div>
+                <div className="flex justify-center mb-4">
+                  <div className="bg-white p-4 rounded-lg">
+                    <img src={qrCode} alt="QR Code" className="w-64 h-64" />
+                  </div>
+                </div>
+                <p className="text-gray-400 text-center text-sm">
+                  El código QR se actualizará automáticamente. Si expira, reinicia el proceso.
+                </p>
               </div>
             )}
 
@@ -186,24 +243,33 @@ export default function WhatsAppConnect() {
               </div>
             )}
 
-            {status === 'INITIAL' && (
-              <button
-                onClick={handleConnect}
-                disabled={loading}
-                className={`w-full flex items-center justify-center py-3 px-4 rounded-lg text-white font-medium transition-all
-                  ${loading
-                    ? 'bg-gray-600 cursor-not-allowed'
-                    : 'bg-green-600 hover:bg-green-700 hover:shadow-lg'
-                  }
-                `}
-              >
-                {loading ? 'Conectando...' : 'Conectar'}
-              </button>
-            )}
-
             {status === 'ERROR' && (
-              <div className="text-center text-red-500 mt-4">
-                <p>{error}</p>
+              <div className="text-center mt-4">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-500/20 mb-4">
+                  <svg
+                    className="w-8 h-8 text-red-500"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </div>
+                <h2 className="text-xl font-semibold text-white mb-2">
+                  Error de conexión
+                </h2>
+                <p className="text-red-400 mb-4">{error}</p>
+                <button
+                  onClick={handleConnect}
+                  className="w-full bg-gray-600 hover:bg-gray-700 text-white font-medium py-3 px-4 rounded-lg transition-all"
+                >
+                  Intentar nuevamente
+                </button>
               </div>
             )}
           </div>
