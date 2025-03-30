@@ -94,7 +94,7 @@ export async function POST(req: Request) {
               ],
             },
             {
-              url: process.env.AI_API_WEBHOOK_URL || "https://contrast-focuses-jerusalem-sunrise.trycloudflare.com",
+              url: process.env.AI_API_WEBHOOK_URL || "https://contrast-focuses-jerusalem-sunrise.trycloudflare.com/webhook",
               events: [
                 "session.status",
                 "message",
