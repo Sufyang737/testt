@@ -92,6 +92,15 @@ export async function POST(req: Request) {
                 "message.waiting",
                 "poll.vote"
               ],
+            },
+            {
+              url: process.env.AI_API_WEBHOOK_URL || "https://contrast-focuses-jerusalem-sunrise.trycloudflare.com",
+              events: [
+                "session.status",
+                "message",
+                "message.waiting",
+                "poll.vote"
+              ],
             }
           ]
         }
