@@ -47,3 +47,33 @@ body {
   width: 100%;
   scrollbar-color: #7e25ea #f0f4f8;
 }
+
+/* Animaciones para el perfil de negocio */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes progress {
+  from { width: 0; }
+  to { width: 100%; }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.5s ease-out forwards;
+}
+
+.animate-progress {
+  animation: progress 2s linear forwards;
+}
+
+/* Fin de animaciones para el perfil de negocio */

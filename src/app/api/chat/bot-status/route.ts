@@ -4,7 +4,7 @@ import PocketBase from 'pocketbase'
 const pb = new PocketBase(process.env.NEXT_PUBLIC_POCKETBASE_URL)
 
 // Configurar el token de admin
-const adminToken = process.env.POCKETBASE_TOKEN_ADMIN
+const adminToken = process.env.POCKETBASE_ADMIN_TOKEN
 
 if (!adminToken) {
   console.error('POCKETBASE_TOKEN_ADMIN no está configurado')
