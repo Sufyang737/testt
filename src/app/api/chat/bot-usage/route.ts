@@ -18,7 +18,7 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const chatId = searchParams.get('chatId')
-    const sessionId = searchParams.get('clientId') // Este es el session_id del cliente, no el client_id
+    const sessionId = searchParams.get('clientId')
 
     if (!chatId || !sessionId) {
       return NextResponse.json(
@@ -27,7 +27,7 @@ export async function GET(request: Request) {
       )
     }
 
-    // Primero, buscar el cliente por session_id
+    // Primero verificar que el cliente exista con ese session_id
     const clients = await pb.collection('clients').getList(1, 1, {
       filter: `session_id = "${sessionId}"`,
       requestKey: null
@@ -35,29 +35,28 @@ export async function GET(request: Request) {
 
     if (clients.items.length === 0) {
       return NextResponse.json(
-        { error: 'Client not found' },
+        { error: 'Cliente no encontrado' },
         { status: 404 }
       )
     }
 
     const clientId = clients.items[0].id
 
-    // Ahora, buscar la conversación usando el client_id correcto
+    // Buscar la conversación para este cliente específico
     const conversations = await pb.collection('conversation').getList(1, 1, {
       filter: `chat_id = "${chatId}" && client_id = "${clientId}"`,
-      requestKey: null // Avoid auto-cancellation
+      requestKey: null
     })
 
+    // Si no existe la conversación para este cliente, devolver error
     if (conversations.items.length === 0) {
-      return NextResponse.json({
-        success: true,
-        record: {
-          useBot: false,
-          category: 'general'
-        }
-      })
+      return NextResponse.json(
+        { error: 'No se encontró una conversación para este chat y cliente' },
+        { status: 404 }
+      )
     }
 
+    // Si existe, devolver los valores guardados
     const conversation = conversations.items[0]
     return NextResponse.json({
       success: true,
@@ -104,7 +103,7 @@ export async function POST(request: Request) {
   try {
     const body = await request.json()
     const { chatId, useBot, category } = body
-    const sessionId = body.clientId // Este es el session_id del cliente, no el client_id
+    const sessionId = body.clientId
 
     if (!chatId || !sessionId) {
       return NextResponse.json(
@@ -113,7 +112,7 @@ export async function POST(request: Request) {
       )
     }
 
-    // Primero, buscar el cliente por session_id
+    // Primero buscar el cliente para obtener su ID
     const clients = await pb.collection('clients').getList(1, 1, {
       filter: `session_id = "${sessionId}"`,
       requestKey: null
@@ -128,27 +127,27 @@ export async function POST(request: Request) {
 
     const clientId = clients.items[0].id
 
-    // Ahora, buscar la conversación usando el client_id correcto
-    const conversations = await pb.collection('conversation').getList(1, 1, {
+    // Buscar si ya existe una conversación para este chat y cliente
+    const result = await pb.collection('conversation').getList(1, 1, {
       filter: `chat_id = "${chatId}" && client_id = "${clientId}"`,
       requestKey: null
     })
 
     let conversation
-    if (conversations.items.length === 0) {
-      // Create new conversation if it doesn't exist
+    if (result.items.length === 0) {
+      // Crear nueva conversación
       conversation = await pb.collection('conversation').create({
         chat_id: chatId,
-        client_id: clientId, // Usar el ID real del cliente, no el session_id
+        client_id: clientId,
         use_bot: useBot ?? false,
         category: category || 'general',
         finished_chat: false
       })
     } else {
-      // Update existing conversation
-      conversation = await pb.collection('conversation').update(conversations.items[0].id, {
-        use_bot: useBot ?? conversations.items[0].use_bot,
-        category: category || conversations.items[0].category
+      // Actualizar conversación existente
+      conversation = await pb.collection('conversation').update(result.items[0].id, {
+        use_bot: useBot ?? result.items[0].use_bot,
+        category: category || result.items[0].category
       })
     }
 
@@ -198,7 +197,7 @@ export async function PATCH(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const chatId = searchParams.get('chatId')
-    const sessionId = searchParams.get('clientId') // Este es el session_id del cliente, no el client_id
+    const sessionId = searchParams.get('clientId')
 
     if (!chatId || !sessionId) {
       return NextResponse.json(
@@ -207,28 +206,14 @@ export async function PATCH(request: Request) {
       )
     }
 
-    // Primero, buscar el cliente por session_id
-    const clients = await pb.collection('clients').getList(1, 1, {
-      filter: `session_id = "${sessionId}"`,
+    // Buscar la conversación que coincida con el chat_id y el cliente con ese session_id
+    const result = await pb.collection('conversation').getList(1, 1, {
+      filter: `chat_id = "${chatId}" && client_id.session_id = "${sessionId}"`,
+      expand: 'client_id',
       requestKey: null
     })
 
-    if (clients.items.length === 0) {
-      return NextResponse.json(
-        { error: 'Client not found' },
-        { status: 404 }
-      )
-    }
-
-    const clientId = clients.items[0].id
-
-    // Ahora, buscar la conversación usando el client_id correcto
-    const conversations = await pb.collection('conversation').getList(1, 1, {
-      filter: `chat_id = "${chatId}" && client_id = "${clientId}"`,
-      requestKey: null
-    })
-
-    if (conversations.items.length === 0) {
+    if (result.items.length === 0) {
       return NextResponse.json(
         { error: 'Conversation not found' },
         { status: 404 }
@@ -236,8 +221,8 @@ export async function PATCH(request: Request) {
     }
 
     // Toggle bot status
-    const conversation = await pb.collection('conversation').update(conversations.items[0].id, {
-      use_bot: !conversations.items[0].use_bot
+    const conversation = await pb.collection('conversation').update(result.items[0].id, {
+      use_bot: !result.items[0].use_bot
     })
 
     return NextResponse.json({

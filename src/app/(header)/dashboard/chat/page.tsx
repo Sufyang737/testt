@@ -456,14 +456,14 @@ export default function ChatPage() {
     
     // Solo procesamos mensajes del chat seleccionado para mostrarlos en la interfaz
     if (selectedChat && wahaMessage.payload.from === selectedChat) {
-      const newMessage: Message = {
-        id: wahaMessage.payload.id,
-        text: wahaMessage.payload.body,
-        sender: wahaMessage.payload.fromMe ? 'user' : 'contact',
-        timestamp: new Date(wahaMessage.payload.timestamp * 1000),
-      };
+    const newMessage: Message = {
+      id: wahaMessage.payload.id,
+      text: wahaMessage.payload.body,
+      sender: wahaMessage.payload.fromMe ? 'user' : 'contact',
+      timestamp: new Date(wahaMessage.payload.timestamp * 1000),
+    };
 
-      setMessages(prev => [...prev, newMessage]);
+    setMessages(prev => [...prev, newMessage]);
     }
   }, [selectedChat, chats, showNotification, conversationBotStatus, clientId, pb]);
 
@@ -763,7 +763,7 @@ export default function ChatPage() {
           }));
           
           // Cargar los detalles después de crear
-          await loadChatDetails(chatId, clientRecord.id);
+        await loadChatDetails(chatId, clientRecord.id);
         }
       } catch (error) {
         console.error('Error en handleChatSelection:', error);
@@ -1195,11 +1195,11 @@ export default function ChatPage() {
                             </div>
                           )}
                           <div
-                            className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-                          >
-                            <div
+                        className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+                      >
+                        <div
                               className={`max-w-[70%] rounded-2xl px-4 py-2.5 shadow-sm ${
-                                message.sender === 'user'
+                            message.sender === 'user'
                                   ? 'bg-primary text-white rounded-tr-none'
                                   : 'bg-white text-gray-800 rounded-tl-none'
                               }`}
@@ -1207,9 +1207,9 @@ export default function ChatPage() {
                               <p className="break-words">{message.text}</p>
                               <span className={`text-xs ${message.sender === 'user' ? 'text-white/80' : 'text-gray-500'} mt-1 block text-right`}>
                                 {message.timestamp.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                              </span>
-                            </div>
-                          </div>
+                          </span>
+                        </div>
+                      </div>
                         </React.Fragment>
                       );
                     })}
@@ -1241,16 +1241,16 @@ export default function ChatPage() {
                     <DocumentTextIcon className="w-5 h-5" />
                   </button>
                   <div className="flex-1 relative">
-                    <input
-                      type="text"
-                      value={newMessage}
-                      onChange={(e) => setNewMessage(e.target.value)}
-                      placeholder={selectedChatDetails?.conversation?.use_bot ? "Bot activo - No puedes enviar mensajes" : "Escribe un mensaje..."}
+                  <input
+                    type="text"
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    placeholder={selectedChatDetails?.conversation?.use_bot ? "Bot activo - No puedes enviar mensajes" : "Escribe un mensaje..."}
                       className={`w-full bg-gray-100 text-gray-800 rounded-full px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary focus:bg-white transition-all ${
                         selectedChatDetails?.conversation?.use_bot ? 'opacity-70 cursor-not-allowed' : ''
-                      }`}
-                      disabled={selectedChatDetails?.conversation?.use_bot}
-                    />
+                    }`}
+                    disabled={selectedChatDetails?.conversation?.use_bot}
+                  />
                   </div>
                   <button
                     type="submit"
@@ -1268,8 +1268,8 @@ export default function ChatPage() {
                   <div className="flex items-center justify-center gap-2 mt-3 bg-yellow-50 text-yellow-700 p-2 rounded-lg">
                     <BoltIcon className="w-5 h-5" />
                     <p className="text-sm">
-                      El bot está activo. Los mensajes serán respondidos automáticamente.
-                    </p>
+                    El bot está activo. Los mensajes serán respondidos automáticamente.
+                  </p>
                   </div>
                 )}
               </form>
@@ -1438,25 +1438,25 @@ export default function ChatPage() {
               
               <div className="max-h-[60vh] overflow-y-auto pr-2">
                 <div className="space-y-3">
-                  {templates.map((template) => (
-                    <div
-                      key={template.id}
+                {templates.map((template) => (
+                  <div
+                    key={template.id}
                       className="bg-gray-50 hover:bg-gray-100 rounded-xl p-4 cursor-pointer transition-all border border-gray-200 hover:border-gray-300"
-                      onClick={() => handleTemplateSelect(template)}
-                    >
+                    onClick={() => handleTemplateSelect(template)}
+                  >
                       <h4 className="text-gray-800 font-medium mb-2">{template.name_template}</h4>
                       <p className="text-gray-600 text-sm">{template.template}</p>
                       <div className="flex gap-2 mt-3 flex-wrap">
-                        {template.tags.split(',').map((tag, i) => (
+                      {template.tags.split(',').map((tag, i) => (
                           <span key={i} className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded-full">
-                            {tag.trim()}
-                          </span>
-                        ))}
-                      </div>
+                          {tag.trim()}
+                        </span>
+                      ))}
                     </div>
-                  ))}
-                  
-                  {templates.length === 0 && (
+                  </div>
+                ))}
+                
+                {templates.length === 0 && (
                     <div className="text-center py-12 bg-gray-50 rounded-xl border border-gray-200">
                       <DocumentTextIcon className="w-12 h-12 mx-auto text-gray-400 mb-4" />
                       <p className="text-gray-600 font-medium">No hay plantillas disponibles</p>
@@ -1484,13 +1484,13 @@ export default function ChatPage() {
             <div className="p-6">
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-bold text-gray-800">Personalizar variables</h3>
-                <button
+                    <button
                   onClick={() => setIsVariablesModalOpen(false)}
                   className="text-gray-500 hover:text-gray-700 p-1.5 rounded-full hover:bg-gray-100 transition-colors"
                 >
                   <XCircleIcon className="w-6 h-6" />
-                </button>
-              </div>
+                    </button>
+                  </div>
               
               <div className="mb-6">
                 <p className="text-gray-600 mb-4">Por favor, completa las siguientes variables para personalizar tu mensaje:</p>
@@ -1500,9 +1500,9 @@ export default function ChatPage() {
                   <div className="bg-white p-3 rounded-lg border border-gray-200 text-gray-700 min-h-16">
                     {processedMessage || (
                       <span className="text-gray-400 italic">Completa las variables para ver la vista previa</span>
-                    )}
-                  </div>
-                </div>
+                )}
+              </div>
+            </div>
                 
                 <div className="space-y-4">
                   {Object.entries(templateVariables).map(([key, value]) => (

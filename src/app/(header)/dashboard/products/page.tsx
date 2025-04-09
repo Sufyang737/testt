@@ -647,7 +647,7 @@ export default function ProductsPage() {
               <div className="flex justify-between items-center p-6 border-b border-gray-100">
                 <h2 className="text-xl font-bold text-gray-800">
                   {selectedProduct ? 'Editar Producto' : 'Agregar Nuevo Producto'}
-                </h2>
+              </h2>
                 <button 
                   onClick={() => setIsModalOpen(false)}
                   className="text-gray-500 hover:text-gray-700 p-1.5 rounded-full hover:bg-gray-200 transition-colors"
@@ -679,21 +679,21 @@ export default function ProductsPage() {
                 )}
                 
                 <form onSubmit={handleSubmit} className="space-y-5">
-                  <div>
+                <div>
                     <label className="block text-gray-700 text-base font-medium mb-2">
                       Nombre del Producto*
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.name}
-                      onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                       className="w-full bg-white text-gray-700 border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                       placeholder="Ej: Camiseta de algodón"
-                      required
-                    />
-                  </div>
+                    required
+                  />
+                </div>
 
-                  <div>
+                <div>
                     <label className="block text-gray-700 text-base font-medium mb-2">
                       URL del Producto
                     </label>
@@ -718,15 +718,15 @@ export default function ProductsPage() {
                   <div>
                     <label className="block text-gray-700 text-base font-medium mb-2">
                       Descripción*
-                    </label>
-                    <textarea
-                      value={formData.description}
-                      onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  </label>
+                  <textarea
+                    value={formData.description}
+                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                       className="w-full bg-white text-gray-700 border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent h-24 resize-none"
                       placeholder="Describe las características del producto..."
-                      required
-                    />
-                  </div>
+                    required
+                  />
+                </div>
 
                   <div>
                     <label className="block text-gray-700 text-base font-medium mb-2">
@@ -748,21 +748,21 @@ export default function ProductsPage() {
                     </label>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-                      <input
-                        type="number"
+                    <input
+                      type="number"
                         step="0.01"
                         min="0"
                         value={formData.price}
                         onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
                         className="w-full bg-white text-gray-700 border border-gray-300 rounded-lg pl-8 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                         placeholder="0.00"
-                        required
-                      />
-                    </div>
+                      required
+                    />
                   </div>
+                </div>
                 </form>
-              </div>
-              
+                </div>
+
               <div className="p-6 border-t border-gray-100">
                 <div className="grid grid-cols-2 gap-4">
                   <button

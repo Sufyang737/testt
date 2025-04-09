@@ -211,7 +211,7 @@ const PriorityMetric: React.FC<PriorityMetricProps> = ({ title, data, total }) =
   const highPercent = total > 0 ? Math.round((data.high / total) * 100) : 0;
   const mediumPercent = total > 0 ? Math.round((data.medium / total) * 100) : 0;
   const lowPercent = total > 0 ? Math.round((data.low / total) * 100) : 0;
-  
+
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
       <h3 className="text-lg font-semibold text-gray-800 mb-3">{title}</h3>
@@ -702,7 +702,7 @@ export default function HomePage() {
                       </Link>
                     </div>
                   </div>
-                </div>
+            </div>
               </>
             </AuthStatus>
           </div>
